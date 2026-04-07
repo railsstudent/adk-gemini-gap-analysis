@@ -1,6 +1,6 @@
 import { BaseAgent, Context, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
-import { agentEndCallback, agentStartCallback } from './callbacks/performance-callback.js';
+import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
 import { GAPS_GRADES_KEY, VALIDATION_ATTEMPTS_KEY } from './output-keys.const.js';
 import { generateGapsGrades } from './prompts/gaps-grades.prompt.js';
 import { Evaluation, gapsGradesSchema } from './types/audit-feedback.type.js';
@@ -9,6 +9,93 @@ import { getAuditFeedbackContext, hasUniqueStrings, isNonBlankStringList, isVali
 const gapsGradesAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema with an empty list of evaluations.`,
 );
+
+function validateGoodScore(evaluation: Evaluation) {
+  if (!isNonBlankStringList(evaluation.strengths)) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: The 'strengths' array contains null, empty, or blank entries. Please provide valid strength descriptions.",
+    };
+  }
+
+  if (evaluation.gaps && evaluation.gaps.length > 0) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: You assigned a 'Good' score but provided gaps. For a 'Good' score, the gaps array must be empty. Please either remove the gaps or adjust the score to 'Moderate'.",
+    };
+  }
+
+  if (!hasUniqueStrings(evaluation.strengths)) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: The 'strengths' array contains duplicate entries. Please ensure all strength descriptions are unique.",
+    };
+  }
+}
+
+function validateModerateScore(evaluation: Evaluation) {
+  if (!isNonBlankStringList(evaluation.gaps)) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: You assigned a 'Moderate' score but provided no gaps. A 'Moderate' score requires identifying the notable gaps that prevented a 'Good' score.",
+    };
+  }
+
+  if (!hasUniqueStrings(evaluation.gaps)) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: The 'gaps' array contains duplicate entries. Please ensure all gap descriptions are unique.",
+    };
+  }
+
+  if (evaluation.strengths && evaluation.strengths.length > 0) {
+    if (!isNonBlankStringList(evaluation.strengths)) {
+      return {
+        status: 'ERROR',
+        message:
+          "Validation failed: The 'strengths' array contains null, empty, or blank entries. Please provide valid strength descriptions or leave the array empty.",
+      };
+    }
+    if (!hasUniqueStrings(evaluation.strengths)) {
+      return {
+        status: 'ERROR',
+        message:
+          "Validation failed: The 'strengths' array contains duplicate entries. Please ensure all strength descriptions are unique.",
+      };
+    }
+  }
+}
+
+function validatePoorScore(evaluation: Evaluation) {
+  if (!isNonBlankStringList(evaluation.gaps)) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: The 'gaps' array contains null, empty, or blank entries. Please provide valid gap descriptions.",
+    };
+  }
+
+  if (evaluation.strengths && evaluation.strengths.length > 0) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: You assigned a 'Poor' score but provided strengths. A 'Poor' score indicates fundamental viability issues; the strengths array must be empty. Please remove the strengths or adjust the score to 'Moderate'.",
+    };
+  }
+
+  if (!hasUniqueStrings(evaluation.gaps)) {
+    return {
+      status: 'ERROR',
+      message:
+        "Validation failed: The 'gaps' array contains duplicate entries. Please ensure all gap descriptions are unique.",
+    };
+  }
+}
 
 export const validGapsGradesTool = new FunctionTool({
   name: 'validate_gaps_grades',
@@ -25,86 +112,9 @@ export const validGapsGradesTool = new FunctionTool({
     }
 
     for (const evaluation of evaluations) {
-      if (!['Good', 'Moderate', 'Poor'].includes(evaluation.score)) {
-        return {
-          status: 'ERROR',
-          message: "Validation failed: An invalid score was provided. The score must be 'Good', 'Moderate', or 'Poor'.",
-        };
-      } else if (evaluation.score === 'Good') {
-        if (!isNonBlankStringList(evaluation.strengths)) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: The 'strengths' array contains null, empty, or blank entries. Please provide valid strength descriptions.",
-          };
-        }
-        if (evaluation.gaps && evaluation.gaps.length > 0) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: You assigned a 'Good' score but provided gaps. For a 'Good' score, the gaps array must be empty. Please either remove the gaps or adjust the score to 'Moderate'.",
-          };
-        }
-        if (!hasUniqueStrings(evaluation.strengths)) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: The 'strengths' array contains duplicate entries. Please ensure all strength descriptions are unique.",
-          };
-        }
-      } else if (evaluation.score === 'Moderate') {
-        if (!isNonBlankStringList(evaluation.gaps)) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: You assigned a 'Moderate' score but provided no gaps. A 'Moderate' score requires identifying the notable gaps that prevented a 'Good' score.",
-          };
-        }
-        if (!hasUniqueStrings(evaluation.gaps)) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: The 'gaps' array contains duplicate entries. Please ensure all gap descriptions are unique.",
-          };
-        }
-        if (evaluation.strengths && evaluation.strengths.length > 0) {
-          if (!isNonBlankStringList(evaluation.strengths)) {
-            return {
-              status: 'ERROR',
-              message:
-                "Validation failed: The 'strengths' array contains null, empty, or blank entries. Please provide valid strength descriptions or leave the array empty.",
-            };
-          }
-          if (!hasUniqueStrings(evaluation.strengths)) {
-            return {
-              status: 'ERROR',
-              message:
-                "Validation failed: The 'strengths' array contains duplicate entries. Please ensure all strength descriptions are unique.",
-            };
-          }
-        }
-      } else if (evaluation.score === 'Poor') {
-        if (!isNonBlankStringList(evaluation.gaps)) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: The 'gaps' array contains null, empty, or blank entries. Please provide valid gap descriptions.",
-          };
-        }
-        if (evaluation.strengths && evaluation.strengths.length > 0) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: You assigned a 'Poor' score but provided strengths. A 'Poor' score indicates fundamental viability issues; the strengths array must be empty. Please remove the strengths or adjust the score to 'Moderate'.",
-          };
-        }
-        if (!hasUniqueStrings(evaluation.gaps)) {
-          return {
-            status: 'ERROR',
-            message:
-              "Validation failed: The 'gaps' array contains duplicate entries. Please ensure all gap descriptions are unique.",
-          };
-        }
+      const validationResult = validateByScore(evaluation);
+      if (validationResult) {
+        return validationResult;
       }
     }
 
@@ -115,39 +125,25 @@ export const validGapsGradesTool = new FunctionTool({
   },
 });
 
-function isValidEvaluation(evaluation: Evaluation): boolean {
+function validateByScore(evaluation: Evaluation) {
   const score = evaluation.score;
-  const isValidGrade = ['Good', 'Moderate', 'Poor'].includes(score);
-  if (!isValidGrade) {
-    return false;
+
+  if (!['Good', 'Moderate', 'Poor'].includes(score)) {
+    return {
+      status: 'ERROR',
+      message: "Validation failed: An invalid score was provided. The score must be 'Good', 'Moderate', or 'Poor'.",
+    };
   }
 
   if (score === 'Good') {
-    const isValidStrengths = isNonBlankStringList(evaluation.strengths) && hasUniqueStrings(evaluation.strengths);
-    const hasGaps = evaluation.gaps && evaluation.gaps.length > 0;
-    if (!isValidStrengths || hasGaps) {
-      return false;
-    }
+    return validateGoodScore(evaluation);
   } else if (score === 'Moderate') {
-    const isValidGaps = isNonBlankStringList(evaluation.gaps) && hasUniqueStrings(evaluation.gaps);
-    if (!isValidGaps) {
-      return false;
-    }
-    if (evaluation.strengths && evaluation.strengths.length > 0) {
-      const isValidStrengths = isNonBlankStringList(evaluation.strengths) && hasUniqueStrings(evaluation.strengths);
-      if (!isValidStrengths) {
-        return false;
-      }
-    }
+    return validateModerateScore(evaluation);
   } else if (score === 'Poor') {
-    const isValidGaps = isNonBlankStringList(evaluation.gaps) && hasUniqueStrings(evaluation.gaps);
-    const hasStrengths = evaluation.strengths && evaluation.strengths.length > 0;
-    if (!isValidGaps || hasStrengths) {
-      return false;
-    }
+    return validatePoorScore(evaluation);
   }
 
-  return true;
+  return undefined;
 }
 
 const validGapsGradesCallback: SingleBeforeModelCallback = async ({ context }) => {
@@ -158,7 +154,7 @@ const validGapsGradesCallback: SingleBeforeModelCallback = async ({ context }) =
 
   if (evaluations && evaluations.length > 0 && subQuestions && subQuestions.texts) {
     if (evaluations.length === subQuestions.texts.length) {
-      const allValidEvaluations = evaluations.every((evaluation) => isValidEvaluation(evaluation));
+      const allValidEvaluations = evaluations.every((evaluation) => !validateByScore(evaluation));
       if (allValidEvaluations) {
         return {
           content: {
@@ -194,7 +190,7 @@ export function createGapsGradesAgent(model: string): BaseAgent {
     model,
     description:
       "Evaluates the user's answer against the generated sub-questions to identify strengths and gaps, providing a structured grade for each criterion.",
-    beforeAgentCallback: [resetAttemptsCallback, agentStartCallback],
+    beforeAgentCallback: [resetAttemptsCallback, createAgentStartCallback('GapsGradesAgent')],
     beforeModelCallback: validGapsGradesCallback,
     instruction: (context) => {
       const { subQuestions, answer } = getAuditFeedbackContext(context);
@@ -205,7 +201,7 @@ export function createGapsGradesAgent(model: string): BaseAgent {
       return 'Skipping LLM due to incomplete SUB-QUESTIONS and/or answer data.';
     },
     afterToolCallback: gapsGradesAfterToolCallback,
-    afterAgentCallback: agentEndCallback,
+    afterAgentCallback: createAgentEndCallback('GapsGradesAgent'),
     tools: [validGapsGradesTool],
     outputSchema: gapsGradesSchema,
     outputKey: GAPS_GRADES_KEY,

@@ -8,6 +8,7 @@ import {
   SUB_QUESTIONS_KEY,
   VALIDATION_ATTEMPTS_KEY,
 } from './sub-agents/output-keys.const.js';
+import { createAgentEndCallback, createAgentStartCallback } from './sub-agents/callbacks/performance-callback.js';
 
 process.loadEnvFile();
 
@@ -84,6 +85,8 @@ export const rootAgent = new LlmAgent({
 
     If the input is nonsensical, too brief, or lacks a valid question/answer, politely explain why and ask for proper input. Do NOT proceed to the tools in that case.
   `,
+  beforeAgentCallback: createAgentStartCallback('AuditFeedbackAgent'),
+  afterAgentCallback: createAgentEndCallback('AuditFeedbackAgent'),
   tools: [prepareAuditFeedbackTool],
   subAgents: [sequentialAuditFeedbackAgent],
 });

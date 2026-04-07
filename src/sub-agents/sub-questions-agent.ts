@@ -1,6 +1,6 @@
 import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
-import { agentEndCallback, agentStartCallback } from './callbacks/performance-callback.js';
+import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
 import { SUB_QUESTIONS_KEY } from './output-keys.const.js';
 import { generateSubQuestionsPrompt } from './prompts/sub-questions.prompt.js';
 import { subQuestionsSchema } from './types/audit-feedback.type.js';
@@ -79,7 +79,7 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
     model,
     description:
       'Decomposes a complex question into smaller, manageable sub-questions for better analysis and structured feedback.',
-    beforeAgentCallback: agentStartCallback,
+    beforeAgentCallback: createAgentStartCallback('SubQuestionsAgent'),
     beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
       const { question, answer } = getAuditFeedbackContext(context);
@@ -90,7 +90,7 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
       return generateSubQuestionsPrompt(question);
     },
     afterToolCallback: subQuestionsAfterToolCallback,
-    afterAgentCallback: agentEndCallback,
+    afterAgentCallback: createAgentEndCallback('SubQuestionsAgent'),
     tools: [validateSubQuestionsTool],
     outputSchema: subQuestionsSchema,
     outputKey: SUB_QUESTIONS_KEY,
