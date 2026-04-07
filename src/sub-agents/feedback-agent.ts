@@ -1,4 +1,4 @@
-import { LlmAgent, SingleBeforeModelCallback } from '@google/adk';
+import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
 import { validateByScore } from './gaps-grades.util.js';
@@ -8,8 +8,31 @@ import { Feedback, feedbackSchema } from './types/audit-feedback.type.js';
 import { getAuditFeedbackContext } from './utils.js';
 
 const feedbackAfterToolCallback = createAfterToolCallback(
-  `STOP processing immediately and output the final JSON schema with a blank strengths and areasForImprovement.`,
+  `STOP processing immediately and output the final JSON schema. You cannot have both blank strengths and areasForImprovement.`,
 );
+
+export const validFeedbackTool = new FunctionTool({
+  name: 'validate_gaps_grades',
+  description:
+    'Validates the LLM-generated evaluations to ensure each sub-question has a valid score, strengths, and gaps. Returns SUCCESS or an ERROR message.',
+  parameters: feedbackSchema,
+  execute: async ({ strengths, areasForImprovement }) => {
+    const hasNoStrengths = !strengths || !strengths.length;
+    const hasNoAreasForImprovement = !areasForImprovement || !areasForImprovement.length;
+
+    if (hasNoStrengths && hasNoAreasForImprovement) {
+      return {
+        status: 'ERROR',
+        message: 'Validation failed: The strengths and areas for improvement are blank. Either field cannot be blank.',
+      };
+    }
+
+    return {
+      status: 'SUCCESS',
+      message: 'Feedback is valid. You may now generate the final output schema and finish.',
+    };
+  },
+});
 
 function isValidFeedback(feedback: Feedback | null) {
   if (!feedback) {
@@ -33,9 +56,7 @@ const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => 
         role: 'model',
         parts: [
           {
-            text: JSON.stringify({
-              text: feedback,
-            }),
+            text: JSON.stringify(feedback),
           },
         ],
       },
@@ -50,23 +71,24 @@ export function createFeedbackAgent(model: string) {
     name: 'FeedbackAgent',
     model,
     description:
-      'Synthesizes the extracted project components, identified anti-patterns, and decision tree verdict into a comprehensive architectural recommendation report.',
+      "Synthesizes the evaluations of the user's answer against the architectural question into a final feedback report containing strengths and areas for improvement.",
     beforeAgentCallback: createAgentStartCallback('FeedbackAgent'),
     beforeModelCallback: checkFeedbackCallback,
     afterToolCallback: feedbackAfterToolCallback,
     afterAgentCallback: createAgentEndCallback('FeedbackAgent'),
     instruction: (context) => {
-      const { gapsGrades } = getAuditFeedbackContext(context);
+      const { gapsGrades, question, answer } = getAuditFeedbackContext(context);
       const { evaluations } = gapsGrades || { evaluations: [] };
 
       const allValidEvaluations = evaluations.every((evaluation) => !validateByScore(evaluation));
 
-      if (allValidEvaluations) {
-        return generateFeedbackPrompt(evaluations);
+      if (allValidEvaluations && question && answer) {
+        return generateFeedbackPrompt(question, answer, evaluations);
       }
 
       return 'Skipping LLM due to invalid evaluations.';
     },
+    tools: [validFeedbackTool],
     outputSchema: feedbackSchema,
     outputKey: FEEDBACK_KEY,
     disallowTransferToParent: true,
