@@ -1,11 +1,12 @@
-import { BaseAgent, Context, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
+import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
+import { resetAttemptsCallback } from './callbacks/reset-attempts-callback.js';
 import { validateByScore } from './gaps-grades.util.js';
-import { GAPS_GRADES_KEY, VALIDATION_ATTEMPTS_KEY } from './output-keys.const.js';
-import { generateGapsGrades } from './prompts/gaps-grades.prompt.js';
+import { GAPS_GRADES_KEY } from './output-keys.const.js';
+import { generateGapsGradesPrompt } from './prompts/gaps-grades.prompt.js';
 import { gapsGradesSchema } from './types/audit-feedback.type.js';
-import { getAuditFeedbackContext, isValidSubquestionsList } from './utils.js';
+import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
 
 const gapsGradesAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema with an empty list of evaluations.`,
@@ -32,6 +33,14 @@ export const validGapsGradesTool = new FunctionTool({
       }
     }
 
+    if (!hasUniqueStrings(evaluations.map((e) => e.subQuestion))) {
+      return {
+        status: 'ERROR',
+        message:
+          'Validation failed: The evaluations array contains duplicate sub-question entries. Please consolidate all strengths and gaps for each sub-question into exactly one entry.',
+      };
+    }
+
     return {
       status: 'SUCCESS',
       message: 'Evaluations are valid. You may now generate the final output schema and finish.',
@@ -47,8 +56,11 @@ const validGapsGradesCallback: SingleBeforeModelCallback = async ({ context }) =
 
   if (evaluations && evaluations.length > 0 && subQuestions && subQuestions.texts) {
     if (evaluations.length === subQuestions.texts.length) {
+      const evaluationSubquestions = evaluations.map((e) => e.subQuestion);
+      const allUnique = hasUniqueStrings(evaluationSubquestions);
       const allValidEvaluations = evaluations.every((evaluation) => !validateByScore(evaluation));
-      if (allValidEvaluations) {
+
+      if (allUnique && allValidEvaluations) {
         return {
           content: {
             role: 'model',
@@ -66,29 +78,18 @@ const validGapsGradesCallback: SingleBeforeModelCallback = async ({ context }) =
   return undefined;
 };
 
-const resetAttemptsCallback = (context: Context) => {
-  if (!context || !context.state) {
-    return undefined;
-  }
-
-  context.state.set(VALIDATION_ATTEMPTS_KEY, 0);
-  console.log(`beforeAgentCallback: Agent ${context.agentName} initialized ${VALIDATION_ATTEMPTS_KEY} to 0.`);
-
-  return undefined;
-};
-
 export function createGapsGradesAgent(model: string): BaseAgent {
   return new LlmAgent({
     name: 'GapsGradesAgent',
     model,
     description:
       "Evaluates the user's answer against the generated sub-questions to identify strengths and gaps, providing a structured grade for each criterion.",
-    beforeAgentCallback: [resetAttemptsCallback, createAgentStartCallback('GapsGradesAgent')],
+    beforeAgentCallback: [createAgentStartCallback('GapsGradesAgent'), resetAttemptsCallback],
     beforeModelCallback: validGapsGradesCallback,
     instruction: (context) => {
       const { subQuestions, answer } = getAuditFeedbackContext(context);
       if (answer && answer.trim().length > 0 && isValidSubquestionsList(subQuestions)) {
-        return generateGapsGrades(answer, subQuestions?.texts || []);
+        return generateGapsGradesPrompt(answer, subQuestions?.texts || []);
       }
 
       return 'Skipping LLM due to incomplete SUB-QUESTIONS and/or answer data.';

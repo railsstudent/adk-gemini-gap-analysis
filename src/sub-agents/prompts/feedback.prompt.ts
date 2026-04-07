@@ -11,23 +11,27 @@ export function generateFeedbackPrompt(question: string, answer: string, evaluat
     - EVALUATIONS: ${JSON.stringify(evaluations)}
 
     ### OUTPUT INSTRUCTIONS
-    You must generate a JSON object containing 'strengths' and 'areasForImprovement' based on the EVALUATIONS.
+    You must generate a JSON object with exactly two properties: 'strengths' and 'areasForImprovement'.
     You MUST use the QUESTION to provide context for your synthesis, ensuring the feedback is directly grounded in the original architectural requirements.
 
-    1. **strengths**:
-       - Review the 'strengths' arrays within the EVALUATIONS.
-       - If there are strengths, synthesize these into a cohesive, Markdown-formatted summary (e.g., using bullet points) that highlights what the user did well in their ANSWER.
-       - The Markdown string MUST start with the heading "### Strengths:".
-       - If there are no strengths in the evaluations, leave this field blank.
+    --- FIELD DEFINITIONS ---
 
-    2. **areasForImprovement**:
-       - Review the 'gaps' arrays within the EVALUATIONS.
-       - If there are gaps, synthesize these into a cohesive, Markdown-formatted summary (e.g., using bullet points) detailing the gaps, missing technical specifics, or viability issues in their ANSWER.
-       - The Markdown string MUST start with the heading "### Areas for Improvement:".
-       - If there are no gaps in the evaluations, leave this field blank.
+    **strengths**:
+    - **Source**: Use ONLY the 'strengths' arrays from the EVALUATIONS.
+    - **Content**: Synthesize a cohesive Markdown summary of what the user did well in their ANSWER.
+    - **Format**: The string MUST start with the heading "### Strengths:".
+    - **STRICT RULE**: You MUST NOT include any gaps, criticisms, or areas for improvement in this field.
 
-    ### CONSTRAINTS
-    - You MUST use Markdown formatting for the text within the string values.
-    - **CRITICAL**: You MUST NOT generate an output where BOTH 'strengths' and 'areasForImprovement' are blank. At least one field must contain synthesized content based on the evaluations.
+    **areasForImprovement**:
+    - **Source**: Use ONLY the 'gaps' arrays from the EVALUATIONS.
+    - **Content**: Synthesize a cohesive Markdown summary detailing the gaps, missing technical specifics, or viability issues found in their ANSWER.
+    - **Format**: The string MUST start with the heading "### Areas for Improvement:".
+    - **STRICT RULE**: You MUST NOT include any strengths or positive feedback in this field.
+
+    --- CONSTRAINTS ---
+    - Use Markdown (e.g., bullet points) within the string values for readability.
+    - **STRICT SEPARATION**: Gaps and improvements MUST be placed in 'areasForImprovement'. Strengths MUST be placed in 'strengths'. You are strictly FORBIDDEN from combining them into a single JSON property.
+    - **MINIMUM CONTENT**: You MUST NOT generate an output where BOTH fields are blank. At least one field MUST contain synthesized content based on the EVALUATIONS.
+    - If a field has no content based on the evaluations, leave it as an empty string ("").
     `;
 }

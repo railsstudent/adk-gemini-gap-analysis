@@ -1,4 +1,4 @@
-export function generateGapsGrades(answer: string, subQuestions: string[]) {
+export function generateGapsGradesPrompt(answer: string, subQuestions: string[]) {
   return `
         You are an expert AI architecture consultant. Your task is to evaluate an architectural answer against a set of specific sub-questions to identify strengths and gaps, and provide a structured grade for each criterion.
 

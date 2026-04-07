@@ -6,24 +6,37 @@ import { FEEDBACK_KEY } from './output-keys.const.js';
 import { generateFeedbackPrompt } from './prompts/feedback.prompt.js';
 import { Feedback, feedbackSchema } from './types/audit-feedback.type.js';
 import { getAuditFeedbackContext } from './utils.js';
+import { resetAttemptsCallback } from './callbacks/reset-attempts-callback.js';
 
 const feedbackAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema. You cannot have both blank strengths and areasForImprovement.`,
 );
 
 export const validFeedbackTool = new FunctionTool({
-  name: 'validate_gaps_grades',
+  name: 'validate_feedback',
   description:
-    'Validates the LLM-generated evaluations to ensure each sub-question has a valid score, strengths, and gaps. Returns SUCCESS or an ERROR message.',
+    'Validates the LLM-generated feedback report to ensure it contains at least one section (strengths or areas for improvement) and uses the correct Markdown headings.',
   parameters: feedbackSchema,
   execute: async ({ strengths, areasForImprovement }) => {
-    const hasNoStrengths = !strengths || !strengths.length;
-    const hasNoAreasForImprovement = !areasForImprovement || !areasForImprovement.length;
+    const hasNoStrengths = !strengths || !strengths.trim().length;
+    const hasNoAreasForImprovement = !areasForImprovement || !areasForImprovement.trim().length;
 
+    const strengthsHeader = '### Strengths:';
+    const areasForImprovementHeader = '### Areas for Improvement:';
     if (hasNoStrengths && hasNoAreasForImprovement) {
       return {
         status: 'ERROR',
         message: 'Validation failed: The strengths and areas for improvement are blank. Either field cannot be blank.',
+      };
+    } else if (!hasNoStrengths && !strengths.trim().startsWith(strengthsHeader)) {
+      return {
+        status: 'ERROR',
+        message: `Validation failed: The strengths does not start with '${strengthsHeader}'`,
+      };
+    } else if (!hasNoAreasForImprovement && !areasForImprovement.trim().startsWith(areasForImprovementHeader)) {
+      return {
+        status: 'ERROR',
+        message: `Validation failed: The areas for improvement does not start with '${areasForImprovementHeader}'`,
       };
     }
 
@@ -72,7 +85,7 @@ export function createFeedbackAgent(model: string) {
     model,
     description:
       "Synthesizes the evaluations of the user's answer against the architectural question into a final feedback report containing strengths and areas for improvement.",
-    beforeAgentCallback: createAgentStartCallback('FeedbackAgent'),
+    beforeAgentCallback: [createAgentStartCallback('FeedbackAgent'), resetAttemptsCallback],
     beforeModelCallback: checkFeedbackCallback,
     afterToolCallback: feedbackAfterToolCallback,
     afterAgentCallback: createAgentEndCallback('FeedbackAgent'),
