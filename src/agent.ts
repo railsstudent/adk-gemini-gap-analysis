@@ -1,14 +1,15 @@
 import { FunctionTool, LlmAgent, SequentialAgent } from '@google/adk';
-import { z } from 'zod';
 import { initSubAgents } from './init.js';
+import { createAgentEndCallback, createAgentStartCallback } from './sub-agents/callbacks/performance-callback.js';
 import {
   ANSWER_KEY,
+  FEEDBACK_KEY,
   GAPS_GRADES_KEY,
   QUESTION_KEY,
   SUB_QUESTIONS_KEY,
   VALIDATION_ATTEMPTS_KEY,
 } from './sub-agents/output-keys.const.js';
-import { createAgentEndCallback, createAgentStartCallback } from './sub-agents/callbacks/performance-callback.js';
+import { questionAnswerSchema } from './sub-agents/types/audit-feedback.type.js';
 
 process.loadEnvFile();
 
@@ -20,10 +21,7 @@ if (!model) {
 const prepareAuditFeedbackTool = new FunctionTool({
   name: 'prepare_audit_feedback',
   description: "Stores the audit question and the user's answer to prepare for a fresh evaluation.",
-  parameters: z.object({
-    question: z.string().describe('The validated question from the audit.'),
-    answer: z.string().describe("It is the user's answer to the audit question."),
-  }),
+  parameters: questionAnswerSchema,
   execute: ({ question, answer }, context) => {
     if (!context || !context.state) {
       return { status: 'ERROR', message: 'No session state found.' };
@@ -50,6 +48,7 @@ const prepareAuditFeedbackTool = new FunctionTool({
     // Clear all previous audit feedback data to ensure a fresh cycle
     context.state.set(SUB_QUESTIONS_KEY, null);
     context.state.set(GAPS_GRADES_KEY, null);
+    context.state.set(FEEDBACK_KEY, null);
     context.state.set(VALIDATION_ATTEMPTS_KEY, 0);
 
     return {

@@ -1,13 +1,6 @@
 import { ReadonlyContext } from '@google/adk';
-import {
-  ANSWER_KEY,
-  GAPS_GRADES_KEY,
-  QUESTION_KEY,
-  RECOMMENDATION_KEY,
-  SUB_QUESTIONS_KEY,
-} from './output-keys.const.js';
-import { GapsGrades, SubQuestions } from './types/audit-feedback.type.js';
-import { Recommendation } from './types/recommendation.type.js';
+import { ANSWER_KEY, FEEDBACK_KEY, GAPS_GRADES_KEY, QUESTION_KEY, SUB_QUESTIONS_KEY } from './output-keys.const.js';
+import { Feedback, GapsGrades, SubQuestions } from './types/audit-feedback.type.js';
 
 export function getAuditFeedbackContext(context: ReadonlyContext | undefined) {
   if (!context || !context.state) {
@@ -16,6 +9,7 @@ export function getAuditFeedbackContext(context: ReadonlyContext | undefined) {
       answer: null,
       subQuestions: null,
       gapsGrades: null,
+      feedback: null,
     };
   }
 
@@ -25,23 +19,11 @@ export function getAuditFeedbackContext(context: ReadonlyContext | undefined) {
     answer: state.get<string>(ANSWER_KEY, '') ?? null,
     subQuestions: state.get<SubQuestions>(SUB_QUESTIONS_KEY) ?? null,
     gapsGrades: state.get<GapsGrades>(GAPS_GRADES_KEY) ?? null,
+    feedback: state.get<Feedback>(FEEDBACK_KEY) ?? null,
   };
 }
 
-export function getAggregateContext(context: ReadonlyContext | undefined) {
-  if (!context || !context.state) {
-    return {
-      recommendation: null,
-    };
-  }
-
-  const state = context.state;
-  return {
-    recommendation: state.get<Recommendation>(RECOMMENDATION_KEY) ?? null,
-  };
-}
-
-export function isNonBlankStringList(items: string[]) {
+export function isNonBlankStringList(items?: string[]) {
   if (!items || !items.length) {
     return false;
   }

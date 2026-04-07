@@ -1,0 +1,4 @@
+{
+"question": "Please show evidence/proof that the current access control configuration satisfies the FY2025 security requirement for remote shell access.",
+"answer": "Regarding the FY2025 security requirement, we acknowledge that our current remote shell access configuration does not yet fully meet industry best practices. We are currently relying on Standard SSH-key authentication for authentication on 50% of our server fleet, which lacks the mandatory MFA integration required by the framework. For the remaining 50%, we are currently managing access via legacy password-only local accounts, which we recognize as a significant security gap. We have begun mapping the MFA requirements to our infrastructure, but we do not yet have a formal remediation timeline or a finalized plan to bring these legacy accounts into full compliance."
+}

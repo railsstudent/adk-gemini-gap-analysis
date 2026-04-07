@@ -1,5 +1,10 @@
 import { array, z } from 'zod';
 
+export const questionAnswerSchema = z.object({
+  question: z.string().describe('The validated question from the audit.'),
+  answer: z.string().describe("It is the user's answer to the audit question."),
+});
+
 export const subQuestionsSchema = z.object({
   texts: z.array(z.string()).default([]),
 });
@@ -20,3 +25,17 @@ export const gapsGradesSchema = z.object({
 });
 
 export type GapsGrades = z.infer<typeof gapsGradesSchema>;
+
+export const feedbackSchema = z.object({
+  strengths: z.string().default(''),
+  areasForImprovement: z.string().default(''),
+});
+
+export type Feedback = z.infer<typeof feedbackSchema>;
+
+export const auditFeedbackSchema = z.object({
+  feedback: feedbackSchema,
+  overall_score: z.enum(['Good', 'Moderate', 'Poor']),
+});
+
+export type AuditFeedback = z.infer<typeof auditFeedbackSchema>;

@@ -1,4 +1,4 @@
-export const RECOMMENDATION_KEY = 'recommendation';
+export const FEEDBACK_KEY = 'feedback';
 export const GAPS_GRADES_KEY = 'gaps_grades';
 export const QUESTION_KEY = 'question';
 export const ANSWER_KEY = 'answer';
