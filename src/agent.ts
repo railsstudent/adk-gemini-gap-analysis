@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { initSubAgents } from './init.js';
 import {
   ANSWER_KEY,
+  GAPS_GRADES_KEY,
   QUESTION_KEY,
   SUB_QUESTIONS_KEY,
   VALIDATION_ATTEMPTS_KEY,
@@ -69,6 +70,7 @@ const resetAuditFeedbackCallback: SingleAgentCallback = (context) => {
 
   // Clear all previous audit feedback data
   state.set(SUB_QUESTIONS_KEY, null);
+  state.set(GAPS_GRADES_KEY, null);
   state.set(VALIDATION_ATTEMPTS_KEY, 0);
 
   console.log(

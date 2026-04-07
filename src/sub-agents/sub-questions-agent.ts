@@ -1,10 +1,10 @@
-import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
+import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
 import { agentEndCallback, agentStartCallback } from './callbacks/performance-callback.js';
 import { SUB_QUESTIONS_KEY } from './output-keys.const.js';
 import { generateSubQuestionsPrompt } from './prompts/sub-questions.prompt.js';
-import { subQuestionsSchema } from './types/index.js';
-import { getAuditFeedbackContext, hasUniqueSubquestions, isValidSubquestionsList } from './utils.js';
+import { subQuestionsSchema } from './types/audit-feedback.type.js';
+import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
 
 const subQuestionsAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately. Max validation attempts reached. Return an empty list of sub-questions if none.`,
@@ -32,11 +32,11 @@ export const validateSubQuestionsTool = new FunctionTool({
       };
     }
 
-    if (!hasUniqueSubquestions(subQuestions.texts)) {
+    if (!hasUniqueStrings(subQuestions.texts)) {
       return {
         status: 'ERROR',
         message:
-          'Validation failed: The list contains duplicate sub-questions. Please ensure each sub-question is unique.',
+          'Validation failed: The list contains duplicated sub-questions. Please ensure each sub-question is unique.',
       };
     }
 
@@ -73,8 +73,8 @@ const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ conte
   };
 };
 
-export function createSubQuestionsAgent(model: string) {
-  const subQuestionsAgent = new LlmAgent({
+export function createSubQuestionsAgent(model: string): BaseAgent {
+  return new LlmAgent({
     name: 'SubQuestionsAgent',
     model,
     description:
@@ -97,6 +97,4 @@ export function createSubQuestionsAgent(model: string) {
     disallowTransferToParent: true,
     disallowTransferToPeers: true,
   });
-
-  return subQuestionsAgent;
 }

@@ -6,19 +6,17 @@ export const subQuestionsSchema = z.object({
 
 export type SubQuestions = z.infer<typeof subQuestionsSchema>;
 
-export const antiPatternsSchema = z.object({
-  isChatbot: z.boolean(),
-  isSingleAPI: z.boolean(),
-  isHighVolume: z.boolean(),
-  isWorkflow: z.boolean(),
-  isSafetyCritical: z.boolean(),
+export const evaluationSchema = z.object({
+  subQuestion: z.string(),
+  score: z.enum(['Good', 'Moderate', 'Poor']),
+  gaps: z.array(z.string()).default([]),
+  strengths: z.array(z.string()).default([]),
 });
 
-export type AntiPatterns = z.infer<typeof antiPatternsSchema>;
+export type Evaluation = z.infer<typeof evaluationSchema>;
 
-export const decisionSchema = z.object({
-  nodes: array(z.string()).default([]),
-  verdict: z.enum(['Use Agent', 'Use Simple API', 'Use Workflow Automation', 'Use LLM', 'None']).default('None'),
+export const gapsGradesSchema = z.object({
+  evaluations: array(evaluationSchema),
 });
 
-export type Decision = z.infer<typeof decisionSchema>;
+export type GapsGrades = z.infer<typeof gapsGradesSchema>;

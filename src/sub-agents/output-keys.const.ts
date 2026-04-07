@@ -1,10 +1,6 @@
-export const AUDIT_TRAIL_KEY = 'auditTrail';
 export const RECOMMENDATION_KEY = 'recommendation';
-export const CLOUD_STORAGE_KEY = 'cloudStorage';
-export const DECISION_KEY = 'decision';
+export const GAPS_GRADES_KEY = 'gaps_grades';
 export const QUESTION_KEY = 'question';
 export const ANSWER_KEY = 'answer';
 export const SUB_QUESTIONS_KEY = 'sub_questions';
-export const ANTI_PATTERNS_KEY = 'antiPatterns';
-export const MERGED_RESULTS_KEY = 'mergedResults';
 export const VALIDATION_ATTEMPTS_KEY = 'validation_attempts';
