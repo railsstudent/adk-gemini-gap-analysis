@@ -82,8 +82,8 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
     beforeAgentCallback: agentStartCallback,
     beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
-      const { question } = getAuditFeedbackContext(context);
-      if (!question) {
+      const { question, answer } = getAuditFeedbackContext(context);
+      if (!question || !answer) {
         return '';
       }
 

@@ -1,4 +1,4 @@
-import { FunctionTool, LlmAgent, SequentialAgent, SingleAgentCallback } from '@google/adk';
+import { FunctionTool, LlmAgent, SequentialAgent } from '@google/adk';
 import { z } from 'zod';
 import { initSubAgents } from './init.js';
 import {
@@ -43,12 +43,18 @@ const prepareAuditFeedbackTool = new FunctionTool({
       };
     }
 
-    console.log('question', question, 'answer', answer);
-
     context.state.set(QUESTION_KEY, question);
     context.state.set(ANSWER_KEY, answer);
 
-    return { status: 'SUCCESS', message: 'question and answer have been updated.' };
+    // Clear all previous audit feedback data to ensure a fresh cycle
+    context.state.set(SUB_QUESTIONS_KEY, null);
+    context.state.set(GAPS_GRADES_KEY, null);
+    context.state.set(VALIDATION_ATTEMPTS_KEY, 0);
+
+    return {
+      status: 'SUCCESS',
+      message: 'question and answer have been updated, and previous feedback state has been reset.',
+    };
   },
 });
 
@@ -56,43 +62,27 @@ export const sequentialAuditFeedbackAgent = new SequentialAgent({
   name: 'SequentialAuditFeedbackAgent',
   subAgents: initSubAgents(model),
   description: `
-        A sequential pipeline that processes a validated audit question and the user's answer. 
-        It decomposes the question into sub-questions, evaluates the provided answer against these criteria, and generates a finalized, merged JSON report.
-    `,
+      A sequential pipeline that processes a validated audit question and the user's answer. 
+      It decomposes the question into sub-questions, evaluates the provided answer against these criteria, and generates a finalized, merged JSON report.
+  `,
 });
-
-const resetAuditFeedbackCallback: SingleAgentCallback = (context) => {
-  if (!context || !context.state) {
-    return undefined;
-  }
-
-  const state = context.state;
-
-  // Clear all previous audit feedback data
-  state.set(SUB_QUESTIONS_KEY, null);
-  state.set(GAPS_GRADES_KEY, null);
-  state.set(VALIDATION_ATTEMPTS_KEY, 0);
-
-  console.log(
-    `beforeAgentCallback: Agent ${context.agentName} has reset the session state for a new audit feedback cycle.`,
-  );
-
-  return undefined;
-};
 
 export const rootAgent = new LlmAgent({
   name: 'AuditFeedbackAgent',
   model,
   description:
     'The primary orchestrator agent that manages user interaction for audit feedback. There is only one question and one answer to the question in a structured audit pipeline.',
-  beforeAgentCallback: resetAuditFeedbackCallback,
   instruction: `
-    1. Ask the user to provide an audit question and their answer to that question.
-    2. Evaluate the user's input. If the input is nonsensical, too brief, or does not provide a valid question and answer, politely explain why and ask for proper input. Do NOT proceed to the next step.
-    3. ONLY if the input is valid, perform the following in order:
-        a. Call 'prepare_audit_feedback' with both the audit question and the user's answer to initialize the session state.
-        b. Execute 'SequentialAuditFeedbackAgent' to process the audit feedback and decompose the question into sub-questions.
-    4. Return the final structured result in JSON format.
+    You are an orchestrator agent that manages the audit feedback pipeline.
+
+    CRITICAL RULE: You MUST treat EVERY user input containing a question and answer as a brand new request. NEVER answer from memory or chat history. You MUST execute your tools every single time, even if the user provides the exact same input twice.
+
+    For EVERY valid user input, you MUST follow these exact steps in order:
+    1. Call the 'prepare_audit_feedback' tool with the provided audit question and answer. (This is MANDATORY to reset the system state).
+    2. Delegate to the 'SequentialAuditFeedbackAgent' to process the data.
+    3. Return the final structured JSON result.
+
+    If the input is nonsensical, too brief, or lacks a valid question/answer, politely explain why and ask for proper input. Do NOT proceed to the tools in that case.
   `,
   tools: [prepareAuditFeedbackTool],
   subAgents: [sequentialAuditFeedbackAgent],
