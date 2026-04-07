@@ -1,6 +1,6 @@
-import { Project } from '../types/evaluation.type.js';
+import { SubQuestions } from '../types/audit-feedback.type.js';
 
-export function generateDecisionPrompt(project: Project) {
+export function generateDecisionPrompt(project: SubQuestions) {
   return `
         You are an expert AI architecture consultant. Your task is to answer four questions to determine the appropriate solution to the project.
 

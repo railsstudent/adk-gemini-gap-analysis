@@ -1,7 +1,7 @@
 import { BaseAgent, Event, InvocationContext, ReadonlyContext } from '@google/adk';
 import { createEmailStatusEvent, sendEmail } from './email-util.js';
 import { SmtpConfig } from './types/email.type.js';
-import { getEvaluationContext, getMergerContext } from './utils.js';
+import { getAuditFeedbackContext, getMergerContext } from './utils.js';
 
 class EmailAgent extends BaseAgent {
   readonly smtpConfig: SmtpConfig;
@@ -24,7 +24,7 @@ class EmailAgent extends BaseAgent {
   protected async *runLiveImpl(context: InvocationContext): AsyncGenerator<Event, void, void> {
     const readonlyCtx = new ReadonlyContext(context);
     const { merger } = getMergerContext(readonlyCtx);
-    const { recommendation } = getEvaluationContext(readonlyCtx);
+    const { recommendation } = getAuditFeedbackContext(readonlyCtx);
     const recommendationText = recommendation?.text || 'No recommendation available.';
 
     const emit = (status: 'success' | 'error', author: string) =>

@@ -1,7 +1,7 @@
-import { AntiPatterns, Decision, Project } from '../types/index.js';
+import { AntiPatterns, Decision, SubQuestions } from '../types/index.js';
 
 export function generateRecommendationPrompt(
-  project: Project | undefined,
+  project: SubQuestions | undefined,
   antiPatterns: AntiPatterns | undefined,
   decision: Decision | undefined,
 ) {
@@ -52,7 +52,7 @@ export function generateRecommendationPrompt(
     `;
 }
 
-export function generateFailedDecisionPrompt(project: Project, missingFields: string[]) {
+export function generateFailedDecisionPrompt(project: SubQuestions, missingFields: string[]) {
   return `
     Your task is to generate a recommendation report explaining why an architectural decision cannot be reached.
     

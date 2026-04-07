@@ -1,17 +1,12 @@
-import { BeforeAgentCallback, FunctionTool, LlmAgent, SequentialAgent } from '@google/adk';
+import { FunctionTool, LlmAgent, SequentialAgent, SingleAgentCallback } from '@google/adk';
 import { z } from 'zod';
-import { initWorkflowAgent } from './init.js';
+import { initSubAgents } from './init.js';
 import {
-  ANTI_PATTERNS_KEY,
-  AUDIT_TRAIL_KEY,
-  CLOUD_STORAGE_KEY,
-  DECISION_KEY,
-  MERGED_RESULTS_KEY,
-  PROJECT_DESCRIPTION_KEY,
-  PROJECT_KEY,
-  RECOMMENDATION_KEY,
+  ANSWER_KEY,
+  QUESTION_KEY,
+  SUB_QUESTIONS_KEY,
   VALIDATION_ATTEMPTS_KEY,
-} from './sub-agents/output-keys.js';
+} from './sub-agents/output-keys.const.js';
 
 process.loadEnvFile();
 
@@ -20,61 +15,58 @@ if (!model) {
   throw new Error('GEMINI_MODEL_NAME is not set');
 }
 
-const prepareEvaluationTool = new FunctionTool({
-  name: 'prepare_evaluation',
-  description: 'Resets the session state and stores the new project description to prepare for a fresh evaluation.',
+const prepareAuditFeedbackTool = new FunctionTool({
+  name: 'prepare_audit_feedback',
+  description: 'Stores the new project description to prepare for a fresh evaluation.',
   parameters: z.object({
-    description: z.string().describe('The validated project description from the user.'),
+    question: z.string().describe('The validated question from the audit.'),
+    answer: z.string().describe('The validated project description from the user.'),
   }),
-  execute: async ({ description }, context) => {
+  execute: ({ question, answer }, context) => {
     if (!context || !context.state) {
       return { status: 'ERROR', message: 'No session state found.' };
     }
 
-    // Set the new description for the ProjectAgent to find
-    context.state.set(PROJECT_DESCRIPTION_KEY, description);
+    context.state.set(QUESTION_KEY, question);
+    context.state.set(ANSWER_KEY, answer);
 
-    return { status: 'SUCCESS', message: 'State reset and description updated.' };
+    return { status: 'SUCCESS', message: 'question and answer have been updated.' };
   },
 });
 
-export const sequentialEvaluationAgent = new SequentialAgent({
-  name: 'SequentialEvaluationAgent',
-  subAgents: initWorkflowAgent(model),
+export const sequentialAuditFeedbackAgent = new SequentialAgent({
+  name: 'SequentialAuditFeedbackAgent',
+  subAgents: initSubAgents(model),
   description: `
         A sequential pipeline that takes a validated project description and evaluates its suitability for an AI agent architecture. 
         It breaks down the project components, applies decision-tree logic, generates an architectural recommendation, and returns a finalized, merged JSON report.
     `,
 });
 
-const beforeAgentCallback: BeforeAgentCallback = async (context) => {
+const resetAuditFeedbackCallback: SingleAgentCallback = (context) => {
   if (!context || !context.state) {
     return undefined;
   }
 
   const state = context.state;
 
-  // Clear all previous evaluation data
-  state.set(PROJECT_KEY, null);
-  state.set(ANTI_PATTERNS_KEY, null);
-  state.set(DECISION_KEY, null);
-  state.set(RECOMMENDATION_KEY, null);
-  state.set(AUDIT_TRAIL_KEY, null);
-  state.set(CLOUD_STORAGE_KEY, null);
-  state.set(MERGED_RESULTS_KEY, null);
+  // Clear all previous audit feedback data
+  state.set(SUB_QUESTIONS_KEY, null);
   state.set(VALIDATION_ATTEMPTS_KEY, 0);
 
-  console.log('Session state has been reset for a new evaluation cycle.');
+  console.log(
+    `beforeAgentCallback: Agent ${context.agentName} has reset the session state for a new audit feedback cycle.`,
+  );
 
   return undefined;
 };
 
 export const rootAgent = new LlmAgent({
-  name: 'ProjectEvaluationAgent',
+  name: 'AuditFeedbackAgent',
   model,
   description:
     'The primary orchestrator agent that manages user interaction and controls the evaluation lifecycle for AI agent architectural suitability.',
-  beforeAgentCallback,
+  beforeAgentCallback: resetAuditFeedbackCallback,
   instruction: `
     1. Ask the user to write a project description.
     2. Evaluate the user's input. If the input is nonsensical, too brief, or clearly does not describe a software, business, or AI project (e.g., "apple and orange", "hello"), politely explain why it is invalid and ask them to provide a proper description. Do NOT proceed to the next step.
@@ -83,6 +75,6 @@ export const rootAgent = new LlmAgent({
         b. Execute 'SequentialEvaluationAgent'.
     4. Return the final result in JSON format.
     `,
-  tools: [prepareEvaluationTool],
-  subAgents: [sequentialEvaluationAgent],
+  tools: [prepareAuditFeedbackTool],
+  subAgents: [sequentialAuditFeedbackAgent],
 });

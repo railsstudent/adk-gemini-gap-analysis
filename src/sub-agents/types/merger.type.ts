@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { antiPatternsSchema, decisionSchema, projectSchema } from './evaluation.type.js';
+import { antiPatternsSchema, decisionSchema, subQuestionsSchema } from './audit-feedback.type.js';
 
 export const auditTrailSchema = z.object({
-  project: projectSchema.nullable(),
+  project: subQuestionsSchema.nullable(),
   status: z.enum(['success', 'error']),
   timestamp: z.string(),
   sessionId: z.string(),
