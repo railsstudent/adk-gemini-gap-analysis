@@ -17,10 +17,10 @@ if (!model) {
 
 const prepareAuditFeedbackTool = new FunctionTool({
   name: 'prepare_audit_feedback',
-  description: 'Stores the new project description to prepare for a fresh evaluation.',
+  description: "Stores the audit question and the user's answer to prepare for a fresh evaluation.",
   parameters: z.object({
     question: z.string().describe('The validated question from the audit.'),
-    answer: z.string().describe('The validated project description from the user.'),
+    answer: z.string().describe("It is the user's answer to the audit question."),
   }),
   execute: ({ question, answer }, context) => {
     if (!context || !context.state) {
@@ -38,8 +38,8 @@ export const sequentialAuditFeedbackAgent = new SequentialAgent({
   name: 'SequentialAuditFeedbackAgent',
   subAgents: initSubAgents(model),
   description: `
-        A sequential pipeline that takes a validated project description and evaluates its suitability for an AI agent architecture. 
-        It breaks down the project components, applies decision-tree logic, generates an architectural recommendation, and returns a finalized, merged JSON report.
+        A sequential pipeline that processes a validated audit question and the user's answer. 
+        It decomposes the question into sub-questions, evaluates the provided answer against these criteria, and generates a finalized, merged JSON report.
     `,
 });
 
@@ -65,15 +65,15 @@ export const rootAgent = new LlmAgent({
   name: 'AuditFeedbackAgent',
   model,
   description:
-    'The primary orchestrator agent that manages user interaction and controls the evaluation lifecycle for AI agent architectural suitability.',
+    'The primary orchestrator agent that manages user interaction for audit feedback. There is only one question and one answer to the question in a structured audit pipeline.',
   beforeAgentCallback: resetAuditFeedbackCallback,
   instruction: `
-    1. Ask the user to write a project description.
-    2. Evaluate the user's input. If the input is nonsensical, too brief, or clearly does not describe a software, business, or AI project (e.g., "apple and orange", "hello"), politely explain why it is invalid and ask them to provide a proper description. Do NOT proceed to the next step.
-    3. ONLY if the input is a valid project description, perform the following in order:
-        a. Call 'prepare_evaluation' with the user's description to reset the session state.
-        b. Execute 'SequentialEvaluationAgent'.
-    4. Return the final result in JSON format.
+    1. Ask the user to provide an audit question and their answer to that question.
+    2. Evaluate the user's input. If the input is nonsensical, too brief, or does not provide a valid question and answer, politely explain why and ask for proper input. Do NOT proceed to the next step.
+    3. ONLY if the input is valid, perform the following in order:
+        a. Call 'prepare_audit_feedback' with both the audit question and the user's answer to initialize the session state.
+        b. Execute 'SequentialAuditFeedbackAgent' to process the audit feedback and decompose the question into sub-questions.
+    4. Return the final structured result in JSON format.
     `,
   tools: [prepareAuditFeedbackTool],
   subAgents: [sequentialAuditFeedbackAgent],
