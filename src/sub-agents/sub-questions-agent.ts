@@ -4,7 +4,7 @@ import { agentEndCallback, agentStartCallback } from './callbacks/performance-ca
 import { SUB_QUESTIONS_KEY } from './output-keys.const.js';
 import { generateSubQuestionsPrompt } from './prompts/sub-questions.prompt.js';
 import { subQuestionsSchema } from './types/index.js';
-import { getAuditFeedbackContext } from './utils.js';
+import { getAuditFeedbackContext, hasUniqueSubquestions, isValidSubquestionsList } from './utils.js';
 
 const subQuestionsAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately. Max validation attempts reached. Return an empty list of sub-questions if none.`,
@@ -13,21 +13,30 @@ const subQuestionsAfterToolCallback = createAfterToolCallback(
 export const validateSubQuestionsTool = new FunctionTool({
   name: 'validate_sub_questions',
   description:
-    'Validates the LLM-generated sub-questions to ensure the array is not empty and each sub-question is not blank. Returns SUCCESS or an ERROR message.',
+    'Validates the LLM-generated sub-questions. Requires at least 2 unique, non-blank sub-questions. Returns SUCCESS or an ERROR message.',
   parameters: subQuestionsSchema,
-  execute: async ({ texts: subQuestions }) => {
-    if (!subQuestions || !subQuestions.length) {
+  execute: async (subQuestions) => {
+    const isSubQuestionsGenerated = isValidSubquestionsList(subQuestions);
+
+    if (!isSubQuestionsGenerated) {
       return {
         status: 'ERROR',
-        message: 'Sub-questions cannot be a blank list.',
+        message: 'Validation failed: The list of sub-questions is missing, empty, or contains blank entries.',
       };
     }
 
-    const idxBlankSubQuestion = subQuestions.findIndex((sq) => !sq.trim());
-    if (idxBlankSubQuestion >= 0) {
+    if (subQuestions.texts.length < 2) {
       return {
         status: 'ERROR',
-        message: `Sub-question at index ${idxBlankSubQuestion} is blank.`,
+        message: 'Validation failed: Please provide at least 2 sub-questions to ensure a meaningful decomposition.',
+      };
+    }
+
+    if (!hasUniqueSubquestions(subQuestions.texts)) {
+      return {
+        status: 'ERROR',
+        message:
+          'Validation failed: The list contains duplicate sub-questions. Please ensure each sub-question is unique.',
       };
     }
 
@@ -38,19 +47,16 @@ export const validateSubQuestionsTool = new FunctionTool({
   },
 });
 
-const beforeModelCallback: SingleBeforeModelCallback = ({ context }) => {
+const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ context }) => {
   const { subQuestions } = getAuditFeedbackContext(context);
 
   console.log(
-    `beforeModelCallback: Agent ${context.agentName} validated any missing field in the project breakdown before calling LLM.`,
+    `beforeModelCallback: Agent ${context.agentName} checked if sub-questions are already present and valid before calling LLM.`,
   );
 
-  if (!subQuestions || !subQuestions.texts || !subQuestions.texts.length) {
-    return undefined;
-  }
+  const isSubQuestionsGenerated = isValidSubquestionsList(subQuestions);
 
-  const { texts: subQuestionsList } = subQuestions;
-  if (subQuestionsList.findIndex((sq) => !sq.trim()) >= 0) {
+  if (!isSubQuestionsGenerated) {
     return undefined;
   }
 
@@ -72,9 +78,9 @@ export function createSubQuestionsAgent(model: string) {
     name: 'SubQuestionsAgent',
     model,
     description:
-      'Analyzes the user-provided project description to extract and structure its core components, including the primary task, underlying problem, ultimate goal, and architectural constraints.',
+      'Decomposes a complex question into smaller, manageable sub-questions for better analysis and structured feedback.',
     beforeAgentCallback: agentStartCallback,
-    beforeModelCallback,
+    beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
       const { question } = getAuditFeedbackContext(context);
       if (!question) {

@@ -66,5 +66,13 @@ export function isValidSubquestionsList(obj_sub_questions: SubQuestions | null):
     return false;
   }
 
-  return sub_questions.every((sub_question) => sub_question);
+  return sub_questions.every((sub_question) => sub_question && sub_question.trim().length > 0);
+}
+
+export function hasUniqueSubquestions(texts: string[]): boolean {
+  if (!texts || !texts.length) {
+    return true; // Technically, an empty list has no duplicates.
+  }
+  const uniqueSubQuestions = new Set(texts.map((sq) => sq.trim().toLowerCase()));
+  return uniqueSubQuestions.size === texts.length;
 }

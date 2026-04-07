@@ -27,6 +27,23 @@ const prepareAuditFeedbackTool = new FunctionTool({
       return { status: 'ERROR', message: 'No session state found.' };
     }
 
+    const minLength = 10;
+    if (question.trim().length < minLength) {
+      return {
+        status: 'ERROR',
+        message: 'The question is too short or invalid. Ask the user to provide a more detailed audit question.',
+      };
+    }
+
+    if (answer.trim().length < 10) {
+      return {
+        status: 'ERROR',
+        message: 'The answer is too short or invalid. Ask the user to provide a more detailed answer.',
+      };
+    }
+
+    console.log('question', question, 'answer', answer);
+
     context.state.set(QUESTION_KEY, question);
     context.state.set(ANSWER_KEY, answer);
 
@@ -74,7 +91,7 @@ export const rootAgent = new LlmAgent({
         a. Call 'prepare_audit_feedback' with both the audit question and the user's answer to initialize the session state.
         b. Execute 'SequentialAuditFeedbackAgent' to process the audit feedback and decompose the question into sub-questions.
     4. Return the final structured result in JSON format.
-    `,
+  `,
   tools: [prepareAuditFeedbackTool],
   subAgents: [sequentialAuditFeedbackAgent],
 });
