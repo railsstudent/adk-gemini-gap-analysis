@@ -26,7 +26,7 @@ export function createAfterToolCallback(
     const attempts = (state.get<number>(VALIDATION_ATTEMPTS_KEY) || 0) + 1;
     state.set(VALIDATION_ATTEMPTS_KEY, attempts);
 
-    const status = response.status;
+    const status = response.status || 'ERROR';
     const isUnsuccessful = status !== 'SUCCESS';
 
     if (isUnsuccessful && attempts >= maxAttempts) {
