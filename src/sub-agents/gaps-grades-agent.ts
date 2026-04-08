@@ -10,6 +10,7 @@ import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } fr
 
 const gapsGradesAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema with an empty list of evaluations.`,
+  GAPS_GRADES_KEY,
 );
 
 export const validGapsGradesTool = new FunctionTool({
@@ -43,6 +44,7 @@ export const validGapsGradesTool = new FunctionTool({
 
     return {
       status: 'SUCCESS',
+      finalizedData: { evaluations },
       message: `Evaluations are valid. You MUST now generate the final output schema EXACTLY matching the following JSON. Do NOT change, add, or remove any strengths, gaps, or scores:\n\n${JSON.stringify({ evaluations })}\n\nOutput this exact JSON structure to complete your task.`,
     };
   },
@@ -79,12 +81,13 @@ const validGapsGradesCallback: SingleBeforeModelCallback = async ({ context }) =
 };
 
 export function createGapsGradesAgent(model: string): BaseAgent {
+  const agentName = 'GapsGradesAgent';
   return new LlmAgent({
-    name: 'GapsGradesAgent',
+    name: agentName,
     model,
     description:
       "Evaluates the user's answer against the generated sub-questions to identify strengths and gaps, providing a structured grade for each criterion.",
-    beforeAgentCallback: [createAgentStartCallback('GapsGradesAgent'), resetAttemptsCallback],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetAttemptsCallback],
     beforeModelCallback: validGapsGradesCallback,
     instruction: (context) => {
       const { subQuestions, answer } = getAuditFeedbackContext(context);
@@ -95,7 +98,7 @@ export function createGapsGradesAgent(model: string): BaseAgent {
       return 'Skipping LLM due to incomplete SUB-QUESTIONS and/or answer data.';
     },
     afterToolCallback: gapsGradesAfterToolCallback,
-    afterAgentCallback: createAgentEndCallback('GapsGradesAgent'),
+    afterAgentCallback: createAgentEndCallback(agentName),
     tools: [validGapsGradesTool],
     outputSchema: gapsGradesSchema,
     outputKey: GAPS_GRADES_KEY,

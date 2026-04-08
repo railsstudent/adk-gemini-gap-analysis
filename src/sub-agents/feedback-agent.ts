@@ -11,6 +11,7 @@ import { getAuditFeedbackContext } from './utils.js';
 
 const feedbackAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema. You cannot have both blank strengths and areasForImprovement.`,
+  FEEDBACK_KEY,
 );
 
 export const validFeedbackTool = new FunctionTool({
@@ -26,6 +27,7 @@ export const validFeedbackTool = new FunctionTool({
 
     return {
       status: 'SUCCESS',
+      finalizedData: feedback,
       message: `Feedback is valid. You MUST now generate the final output schema EXACTLY matching the following JSON. Do NOT change any headings, content, or formatting:\n\n${JSON.stringify(feedback)}\n\nOutput this exact JSON structure to complete your task.`,
     };
   },
@@ -53,15 +55,16 @@ const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => 
 };
 
 export function createFeedbackAgent(model: string) {
+  const agentName = 'FeedbackAgent';
   return new LlmAgent({
-    name: 'FeedbackAgent',
+    name: agentName,
     model,
     description:
       "Synthesizes the evaluations of the user's answer against the architectural question into a final feedback report containing strengths and areas for improvement.",
-    beforeAgentCallback: [createAgentStartCallback('FeedbackAgent'), resetAttemptsCallback],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetAttemptsCallback],
     beforeModelCallback: checkFeedbackCallback,
     afterToolCallback: feedbackAfterToolCallback,
-    afterAgentCallback: createAgentEndCallback('FeedbackAgent'),
+    afterAgentCallback: createAgentEndCallback(agentName),
     instruction: (context) => {
       const { gapsGrades, question, answer } = getAuditFeedbackContext(context);
       const { evaluations } = gapsGrades || { evaluations: [] };

@@ -4,6 +4,7 @@ import { MAX_ITERATIONS } from '../validation.const.js';
 
 export function createAfterToolCallback(
   fatalErrorMessage: string,
+  stateKey: string,
   maxAttempts = MAX_ITERATIONS,
 ): SingleAfterToolCallback {
   return ({ tool, context, response }) => {
@@ -39,6 +40,10 @@ export function createAfterToolCallback(
         status: 'FATAL_ERROR',
         message: fatalErrorMessage,
       };
+    }
+
+    if (!isUnsuccessful && response.finalizedData) {
+      state.set(stateKey, response.finalizedData);
     }
 
     // passing the original response

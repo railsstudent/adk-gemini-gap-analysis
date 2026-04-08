@@ -26,7 +26,7 @@ describe('createAfterToolCallback', () => {
   });
 
   it('should ignore non-object responses', async () => {
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     const result = await callback({
       tool: { name: 'test_tool' } as BaseTool,
@@ -40,7 +40,7 @@ describe('createAfterToolCallback', () => {
   });
 
   it('should increment the attempt counter on a tool response', async () => {
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     await callback({
       tool: { name: 'test_tool' } as BaseTool,
@@ -55,7 +55,7 @@ describe('createAfterToolCallback', () => {
 
   it('should return undefined and not escalate if attempts < maxAttempts and status is unsuccessful', async () => {
     mockState.set(VALIDATION_ATTEMPTS_KEY, 1); // Mock 1 previous attempt
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     const result = await callback({
       tool: { name: 'test_tool' } as BaseTool,
@@ -71,7 +71,7 @@ describe('createAfterToolCallback', () => {
 
   it('should return FATAL_ERROR and escalate if attempts >= maxAttempts and status is ERROR', async () => {
     mockState.set(VALIDATION_ATTEMPTS_KEY, 2); // Mock 2 previous attempts
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     const result = await callback({
       tool: { name: 'test_tool' } as BaseTool,
@@ -90,7 +90,7 @@ describe('createAfterToolCallback', () => {
 
   it('should return FATAL_ERROR and escalate if attempts >= maxAttempts and status is FATAL_ERROR', async () => {
     mockState.set(VALIDATION_ATTEMPTS_KEY, 2); // Mock 2 previous attempts
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     const result = await callback({
       tool: { name: 'test_tool' } as BaseTool,
@@ -109,7 +109,7 @@ describe('createAfterToolCallback', () => {
 
   it('should return FATAL_ERROR and escalate if attempts >= maxAttempts and status is missing', async () => {
     mockState.set(VALIDATION_ATTEMPTS_KEY, 2); // Mock 2 previous attempts
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     const result = await callback({
       tool: { name: 'test_tool' } as BaseTool,
@@ -128,7 +128,7 @@ describe('createAfterToolCallback', () => {
 
   it('should return undefined and not escalate if attempts >= maxAttempts but status is SUCCESS', async () => {
     mockState.set(VALIDATION_ATTEMPTS_KEY, 2); // Mock 2 previous attempts
-    const callback = createAfterToolCallback(FATAL_MSG, MAX_ATTEMPTS) as SingleAfterToolCallback;
+    const callback = createAfterToolCallback(FATAL_MSG, 'TEST_KEY', MAX_ATTEMPTS) as SingleAfterToolCallback;
 
     const result = await callback({
       tool: { name: 'test_tool' } as BaseTool,

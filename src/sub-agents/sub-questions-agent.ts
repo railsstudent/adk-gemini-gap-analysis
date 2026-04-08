@@ -8,6 +8,7 @@ import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } fr
 
 const subQuestionsAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately. Max validation attempts reached. Return an empty list of sub-questions if none.`,
+  SUB_QUESTIONS_KEY,
 );
 
 export const validateSubQuestionsTool = new FunctionTool({
@@ -42,6 +43,7 @@ export const validateSubQuestionsTool = new FunctionTool({
 
     return {
       status: 'SUCCESS',
+      finalizedData: subQuestions,
       message: 'The question is decomposed into a list of sub-questions successfully.',
     };
   },
@@ -74,12 +76,13 @@ const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ conte
 };
 
 export function createSubQuestionsAgent(model: string): BaseAgent {
+  const agentName = 'SubQuestionsAgent';
   return new LlmAgent({
-    name: 'SubQuestionsAgent',
+    name: agentName,
     model,
     description:
       'Decomposes a complex question into smaller, manageable sub-questions for better analysis and structured feedback.',
-    beforeAgentCallback: createAgentStartCallback('SubQuestionsAgent'),
+    beforeAgentCallback: createAgentStartCallback(agentName),
     beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
       const { question, answer } = getAuditFeedbackContext(context);
@@ -90,7 +93,7 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
       return generateSubQuestionsPrompt(question);
     },
     afterToolCallback: subQuestionsAfterToolCallback,
-    afterAgentCallback: createAgentEndCallback('SubQuestionsAgent'),
+    afterAgentCallback: createAgentEndCallback(agentName),
     tools: [validateSubQuestionsTool],
     outputSchema: subQuestionsSchema,
     outputKey: SUB_QUESTIONS_KEY,
