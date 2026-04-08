@@ -43,7 +43,8 @@ export const validGapsGradesTool = new FunctionTool({
 
     return {
       status: 'SUCCESS',
-      message: 'Evaluations are valid. You may now generate the final output schema and finish.',
+      message:
+        'Evaluations are valid. You MUST now generate the final output schema using the EXACT evaluations (including all strengths and gaps for each sub-question in a single entry) that were validated by this tool call. Do NOT split a sub-question into multiple entries in your final JSON output.',
     };
   },
 });

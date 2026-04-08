@@ -27,18 +27,20 @@ export function generateGapsGradesPrompt(answer: string, subQuestions: string[])
         **Step 4: Populate Output Arrays**
         You MUST strictly follow these rules when populating the output:
         - If the score is **Good**: Populate the \`strengths\` array. You MUST leave the \`gaps\` array empty.
-        - If the score is **Moderate**: Populate the \`gaps\` array. You MAY also populate the \`strengths\` array to acknowledge what the answer addressed correctly.
-        - If the score is **Poor**: Populate the \`gaps\` array. You MUST leave the \`strengths\` array empty to emphasize the fundamental viability issues.
+        - If the score is **Moderate**: You MUST populate the \`gaps\` array with at least one notable gap. You MAY also populate the \`strengths\` array. **ALL strengths and gaps for this sub-question MUST be in the SAME object.**
+        - If the score is **Poor**: Populate the \`gaps\` array. You MUST leave the \`strengths\` array empty.
 
         ### VALIDATION STEP
         Before generating your final JSON output, you MUST call the 'validate_gaps_grades' tool with your chosen evaluations (e.g. { "evaluations": [] }).
         - Ensure the \`subQuestion\` field matches the exact text from the SUB_QUESTIONS list.
-        - If the tool returns 'SUCCESS', you may output the final JSON schema.
+        - You MUST provide exactly ONE evaluation object per sub-question in your tool call.
+        - If the tool returns 'SUCCESS', you MUST output the final JSON schema using the EXACT consolidated evaluations that were validated.
         - If the tool returns an 'ERROR', you MUST fix the specific validation failures before trying again.
 
         ### OUTPUT FORMAT
         - You MUST populate the 'subQuestion', 'score', 'strengths' and 'gaps' properties of the output schema with the exact result.
+        - **CONSOLIDATION RULE**: You MUST generate exactly ONE evaluation entry per sub-question. Do NOT split a single sub-question's evaluation into multiple entries (e.g., separating strengths and gaps for a single sub-question is NOT allowed).
         - Do not invent new scores.
         - Do not invent new sub-questions. You MUST evaluate exactly the ones provided in the SUB_QUESTIONS list, neither adding nor omitting any.
-    `;
+        `;
 }

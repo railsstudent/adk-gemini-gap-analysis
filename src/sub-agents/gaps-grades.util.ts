@@ -32,7 +32,7 @@ function validateModerateScore(evaluation: Evaluation) {
     return {
       status: 'ERROR',
       message:
-        "Validation failed: You assigned a 'Moderate' score but provided no gaps. A 'Moderate' score requires identifying the notable gaps that prevented a 'Good' score.",
+        "Validation failed: You assigned a 'Moderate' score but provided no gaps. A 'Moderate' score REQUIRES identifying the notable gaps that prevented a 'Good' score. If you have both strengths and gaps for this sub-question, you MUST consolidate them into this single evaluation object.",
     };
   }
 
@@ -67,7 +67,7 @@ function validatePoorScore(evaluation: Evaluation) {
     return {
       status: 'ERROR',
       message:
-        "Validation failed: The 'gaps' array contains null, empty, or blank entries. Please provide valid gap descriptions.",
+        "Validation failed: You assigned a 'Poor' score but provided no gaps. A 'Poor' score REQUIRES identifying the major gaps. Please provide valid gap descriptions in the 'gaps' array.",
     };
   }
 

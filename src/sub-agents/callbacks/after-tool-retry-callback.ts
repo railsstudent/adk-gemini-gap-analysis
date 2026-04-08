@@ -19,15 +19,17 @@ export function createAfterToolCallback(
       `afterToolCallback: Agent "${agentName}" executed tool "${toolName}" with response: ${JSON.stringify(response)}.`,
     );
 
-    if (!response || typeof response !== 'object' || !('status' in response)) {
+    if (!response || typeof response !== 'object') {
       return undefined;
     }
 
     const attempts = (state.get<number>(VALIDATION_ATTEMPTS_KEY) || 0) + 1;
     state.set(VALIDATION_ATTEMPTS_KEY, attempts);
 
-    const status = response.status || 'ERROR';
-    if (status === 'ERROR' && attempts >= maxAttempts) {
+    const status = response.status;
+    const isUnsuccessful = status !== 'SUCCESS';
+
+    if (isUnsuccessful && attempts >= maxAttempts) {
       console.log(`Max validation attempts reached (${attempts}). Forcing LLM to terminate.`);
 
       // Break the internal LLM tool-calling loop
