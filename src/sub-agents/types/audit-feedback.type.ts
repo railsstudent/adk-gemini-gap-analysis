@@ -35,7 +35,7 @@ export type Feedback = z.infer<typeof feedbackSchema>;
 
 export const auditFeedbackSchema = z.object({
   feedback: feedbackSchema,
-  overall_score: z.enum(['Good', 'Moderate', 'Poor']),
+  overallGrade: z.enum(['Good', 'Moderate', 'Poor']),
 });
 
 export type AuditFeedback = z.infer<typeof auditFeedbackSchema>;
