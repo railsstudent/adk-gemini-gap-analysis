@@ -5,27 +5,28 @@ export function validateFeedback(feedback: Feedback) {
   const hasNoStrengths = !strengths || !strengths.trim().length;
   const hasNoAreasForImprovement = !areasForImprovement || !areasForImprovement.trim().length;
 
-  const strengthsHeader = '### Strengths:';
-  const areasForImprovementHeader = '### Areas for Improvement:';
+  const strengthsHeader = '## Strengths';
+  const areasForImprovementHeader = '## Areas for Improvement';
 
   if (hasNoStrengths && hasNoAreasForImprovement) {
     return {
       status: 'ERROR',
-      message: 'Validation failed: The strengths and areas for improvement are blank. Either field cannot be blank.',
+      message:
+        'Validation failed: Both the strengths and areas for improvement fields are blank. At least one field MUST contain content.',
     };
   }
 
   if (!hasNoStrengths && !strengths.trim().startsWith(strengthsHeader)) {
     return {
       status: 'ERROR',
-      message: `Validation failed: The strengths does not start with '${strengthsHeader}'`,
+      message: `Validation failed: The strengths field does not start with the required heading '${strengthsHeader}'`,
     };
   }
 
   if (!hasNoAreasForImprovement && !areasForImprovement.trim().startsWith(areasForImprovementHeader)) {
     return {
       status: 'ERROR',
-      message: `Validation failed: The areas for improvement does not start with '${areasForImprovementHeader}'`,
+      message: `Validation failed: The areas for improvement field does not start with the required heading '${areasForImprovementHeader}'`,
     };
   }
 

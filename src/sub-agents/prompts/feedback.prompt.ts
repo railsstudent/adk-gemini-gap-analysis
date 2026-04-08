@@ -19,19 +19,27 @@ export function generateFeedbackPrompt(question: string, answer: string, evaluat
     **strengths**:
     - **Source**: Use ONLY the 'strengths' arrays from the EVALUATIONS.
     - **Content**: Synthesize a cohesive Markdown summary of what the user did well in their ANSWER.
-    - **Format**: The string MUST start with the heading "### Strengths:".
+    - **Format**: The string MUST start with the heading "## Strengths", and the summary content MUST begin on the next line.
     - **STRICT RULE**: You MUST NOT include any gaps, criticisms, or areas for improvement in this field.
 
     **areasForImprovement**:
     - **Source**: Use ONLY the 'gaps' arrays from the EVALUATIONS.
     - **Content**: Synthesize a cohesive Markdown summary detailing the gaps, missing technical specifics, or viability issues found in their ANSWER.
-    - **Format**: The string MUST start with the heading "### Areas for Improvement:".
+    - **Format**: The string MUST start with the heading "## Areas for Improvement", and the summary content MUST begin on the next line.
     - **STRICT RULE**: You MUST NOT include any strengths or positive feedback in this field.
 
     --- CONSTRAINTS ---
-    - Use Markdown (e.g., bullet points) within the string values for readability.
+    - Use Markdown for readability (e.g., bullet points or short paragraphs).
     - **STRICT SEPARATION**: Gaps and improvements MUST be placed in 'areasForImprovement'. Strengths MUST be placed in 'strengths'. You are strictly FORBIDDEN from combining them into a single JSON property.
     - **MINIMUM CONTENT**: You MUST NOT generate an output where BOTH fields are blank. At least one field MUST contain synthesized content based on the EVALUATIONS.
     - If a field has no content based on the evaluations, leave it as an empty string ("").
+
+    ### VALIDATION STEP
+    Before generating your final JSON output, you MUST call the 'validate_feedback' tool with your synthesized strengths and areas for improvement.
+    - If the tool returns 'SUCCESS', you may output the final JSON schema.
+    - If the tool returns an error, you MUST address the specific reason why the feedback was not qualified (as provided in the error message) and try again.
+
+    ### OUTPUT FORMAT
+    - You MUST populate the 'strengths' and 'areasForImprovement' properties of the output schema with your synthesized content.
     `;
 }

@@ -26,7 +26,7 @@ export const validFeedbackTool = new FunctionTool({
 
     return {
       status: 'SUCCESS',
-      message: 'Feedback is valid. You may now generate the final output schema and finish.',
+      message: `Feedback is valid. You MUST now generate the final output schema EXACTLY matching the following JSON. Do NOT change any headings, content, or formatting:\n\n${JSON.stringify(feedback)}\n\nOutput this exact JSON structure to complete your task.`,
     };
   },
 });
