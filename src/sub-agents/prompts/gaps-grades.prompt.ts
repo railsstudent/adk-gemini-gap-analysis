@@ -30,6 +30,10 @@ export function generateGapsGradesPrompt(answer: string, subQuestions: string[])
         - If the score is **Moderate**: You MUST populate the \`gaps\` array with at least one notable gap. You MAY also populate the \`strengths\` array. **ALL strengths and gaps for this sub-question MUST be in the SAME object.**
         - If the score is **Poor**: Populate the \`gaps\` array. You MUST leave the \`strengths\` array empty.
 
+        **Reference Rule for Gaps**: 
+        When defining a gap, you SHOULD cite a specific, well-known industry standard, framework, or documentation (e.g., 'See the AWS Well-Architected Framework', 'Refer to the NIST guidelines'). 
+        You may only omit a reference if the gap is strictly related to bespoke internal business logic where no external standard applies.
+
         ### VALIDATION STEP
         Before generating your final JSON output, you MUST call the 'validate_gaps_grades' tool with your chosen evaluations (e.g. { "evaluations": [] }).
         - Ensure the \`subQuestion\` field matches the exact text from the SUB_QUESTIONS list.

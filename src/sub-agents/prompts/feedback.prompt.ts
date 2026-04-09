@@ -26,6 +26,8 @@ export function generateFeedbackPrompt(question: string, answer: string, evaluat
     - **Source**: Use ONLY the 'gaps' arrays from the EVALUATIONS.
     - **Content**: Synthesize a cohesive Markdown summary detailing the gaps, missing technical specifics, or viability issues found in their ANSWER.
     - **Format**: The string MUST start with the heading "## Areas for Improvement", and the summary content MUST begin on the next line.
+    - **References**: You MUST ensure that any suggested documents, site links, or reference frameworks provided in the source gaps are preserved and clearly highlighted in your synthesis. Format these references prominently 
+      (e.g., using bold text or dedicated bullet points) so the user knows exactly where to look for improvement.
     - **STRICT RULE**: You MUST NOT include any strengths or positive feedback in this field.
 
     --- CONSTRAINTS ---
