@@ -11,6 +11,10 @@
         {
             "question": "Please show evidence/proof that the current access control configuration satisfies the FY2025 security requirement for remote shell access.",
             "answer": "Regarding the FY2025 security requirement, we have officially adopted the mandate for MFA-based remote shell access. Our current configuration reflects a hybrid state: while we have successfully integrated MFA for our core production clusters (approx. 60% of our fleet), we are still finalizing the rollout for the remaining secondary nodes. We are currently utilizing standard SSH-keys for these remaining servers. Our internal audit team is in the process of generating the access logs for these clusters, and we expect to have the complete technical evidence package ready for review by the end of next week."
+        },
+        {
+            "question": "Please show evidence/proof that the current access control configuration satisfies the FY2025 security requirement for remote shell access.",
+            "answer": "The FY2025 security framework mandates FIDO2-based MFA for all remote shell entry points, strictly prohibiting password or legacy SSH-key-only authentication. To satisfy this, we have fully transitioned our IAM configuration to enforce FIDO2 hardware security keys globally via the central Identity and Access Management (IAM) gateway; any login attempt without a valid FIDO2 challenge is automatically dropped at the network perimeter. We have decommissioned all legacy local accounts and migrated 100% of our server fleet, including legacy infrastructure, to this IAM system. Finally, we have reconciled our SIEM telemetry for Q1 and Q2 of FY2025; the attached audit report contains the raw MFA-challenge logs, which confirm that every single remote session was successfully gated by IAM-authorized FIDO2 validation."
         }
     ]
 }
