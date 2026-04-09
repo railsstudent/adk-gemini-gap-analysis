@@ -46,8 +46,10 @@ class FinalOutputAgent extends BaseAgent {
     const isAllGood = evaluations.every((evaluation) => evaluation.score === 'Good');
     const isAllPoor = evaluations.every((evaluation) => evaluation.score === 'Poor');
 
-    const overallGrade = isAllGood ? 'Good' : isAllPoor ? 'Poor' : 'Moderate';
-    const gapFeedback: Feedback = feedback ? feedback : { strengths: '', areasForImprovement: '' };
+    const isValidFeedback =
+      feedback && (feedback.strengths.trim().length > 0 || feedback.areasForImprovement.trim().length > 0);
+    const gapFeedback: Feedback = isValidFeedback ? feedback : { strengths: '', areasForImprovement: '' };
+    const overallGrade = !isValidFeedback ? 'Poor' : isAllGood ? 'Good' : isAllPoor ? 'Poor' : 'Moderate';
 
     const emit = (author: string) =>
       createFinalOutputEvent(author, context, {

@@ -36,6 +36,20 @@ export const validFeedbackTool = new FunctionTool({
 const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(`beforeModelCallback: Agent ${context.agentName} validated feedback before calling LLM.`);
 
+  if (context?.state?.get(`${FEEDBACK_KEY}_FAILED`)) {
+    console.log('Validation permanently failed. Terminating agent with fallback data.');
+    return {
+      content: {
+        role: 'model',
+        parts: [
+          {
+            text: JSON.stringify({ strengths: '', areasForImprovement: '' }),
+          },
+        ],
+      },
+    };
+  }
+
   const { feedback } = getAuditFeedbackContext(context);
 
   if (feedback && !validateFeedback(feedback)) {

@@ -35,6 +35,7 @@ export function createAfterToolCallback(
 
       // Break the internal LLM tool-calling loop
       context.actions.escalate = true;
+      state.set(`${stateKey}_FAILED`, true);
 
       return {
         status: 'FATAL_ERROR',
