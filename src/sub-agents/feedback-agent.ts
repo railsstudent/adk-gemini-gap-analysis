@@ -1,7 +1,7 @@
 import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
-import { resetAttemptsCallback } from './callbacks/reset-attempts-callback.js';
+import { resetSessionStateCallback } from './callbacks/reset-attempts-callback.js';
 import { validateFeedback } from './feedback.util.js';
 import { validateByScore } from './gaps-grades.util.js';
 import { FEEDBACK_KEY } from './output-keys.const.js';
@@ -75,7 +75,7 @@ export function createFeedbackAgent(model: string) {
     model,
     description:
       "Synthesizes the evaluations of the user's answer against the architectural question into a final feedback report containing strengths and areas for improvement.",
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetAttemptsCallback],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(FEEDBACK_KEY)],
     beforeModelCallback: checkFeedbackCallback,
     afterToolCallback: feedbackAfterToolCallback,
     afterAgentCallback: createAgentEndCallback(agentName),

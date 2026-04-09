@@ -7,7 +7,6 @@ import {
   GAPS_GRADES_KEY,
   QUESTION_KEY,
   SUB_QUESTIONS_KEY,
-  VALIDATION_ATTEMPTS_KEY,
 } from './sub-agents/output-keys.const.js';
 import { questionAnswerSchema } from './sub-agents/types/audit-feedback.type.js';
 
@@ -49,10 +48,6 @@ const prepareAuditFeedbackTool = new FunctionTool({
     context.state.set(SUB_QUESTIONS_KEY, null);
     context.state.set(GAPS_GRADES_KEY, null);
     context.state.set(FEEDBACK_KEY, null);
-    context.state.set(VALIDATION_ATTEMPTS_KEY, 0);
-    context.state.set(`${GAPS_GRADES_KEY}_FAILED`, null);
-    context.state.set(`${FEEDBACK_KEY}_FAILED`, null);
-    context.state.set(`${SUB_QUESTIONS_KEY}_FAILED`, null);
 
     return {
       status: 'SUCCESS',
