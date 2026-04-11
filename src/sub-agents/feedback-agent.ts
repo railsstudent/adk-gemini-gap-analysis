@@ -43,7 +43,7 @@ const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => 
         role: 'model',
         parts: [
           {
-            text: JSON.stringify({ strengths: '', areasForImprovement: '' }),
+            text: JSON.stringify(null),
           },
         ],
       },

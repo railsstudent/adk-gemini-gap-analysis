@@ -1,17 +1,19 @@
 import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
-import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
-import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
-import { resetSessionStateCallback } from './callbacks/reset-attempts-callback.js';
-import { validateFeedback } from './feedback.util.js';
-import { validateByScore } from './gaps-grades.util.js';
-import { FEEDBACK_KEY } from './output-keys.const.js';
-import { generateFeedbackPrompt } from './prompts/feedback.prompt.js';
-import { feedbackSchema } from './types/audit-feedback.type.js';
-import { getAuditFeedbackContext } from './utils.js';
+import { createAfterToolCallback } from '../sub-agents/callbacks/after-tool-retry-callback.js';
+import { createAgentEndCallback, createAgentStartCallback } from '../sub-agents/callbacks/performance-callback.js';
+import { resetSessionStateCallback } from '../sub-agents/callbacks/reset-attempts-callback.js';
+import { validateFeedback } from '../sub-agents/feedback.util.js';
+import { validateByScore } from '../sub-agents/gaps-grades.util.js';
+import { FEEDBACK_KEY } from '../sub-agents/output-keys.const.js';
+import { generateFeedbackPrompt } from '../sub-agents/prompts/feedback.prompt.js';
+import { feedbackSchema } from '../sub-agents/types/audit-feedback.type.js';
+import { getAuditFeedbackContext } from '../sub-agents/utils.js';
+import { refineAnswerSchema } from './types/refine-answer.type.js';
+import { REFINE_ANSWER_KEY } from './refine_answer_output.js';
 
-const feedbackAfterToolCallback = createAfterToolCallback(
-  `STOP processing immediately and output the final JSON schema. You cannot have both blank strengths and areasForImprovement.`,
-  FEEDBACK_KEY,
+const refineAnswerAfterToolCallback = createAfterToolCallback(
+  'STOP processing immediately and output the final JSON schema. The refinement cannot be blank or same as the original answer.',
+  REFINE_ANSWER_KEY,
 );
 
 export const validFeedbackTool = new FunctionTool({
@@ -33,10 +35,10 @@ export const validFeedbackTool = new FunctionTool({
   },
 });
 
-const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => {
+const checkRefinedAnswerCallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(`beforeModelCallback: Agent ${context.agentName} validated feedback before calling LLM.`);
 
-  if (context?.state?.get(`${FEEDBACK_KEY}_FAILED`)) {
+  if (context?.state?.get(`${REFINE_ANSWER_KEY}_FAILED`)) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {
@@ -69,15 +71,15 @@ const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => 
 };
 
 export function createRefinementAgent(model: string) {
-  const agentName = 'FeedbackAgent';
+  const agentName = 'RefineAnswerAgent';
   return new LlmAgent({
     name: agentName,
     model,
     description:
       "Synthesizes the evaluations of the user's answer against the architectural question into a final feedback report containing strengths and areas for improvement.",
     beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(FEEDBACK_KEY)],
-    beforeModelCallback: checkFeedbackCallback,
-    afterToolCallback: feedbackAfterToolCallback,
+    beforeModelCallback: checkRefinedAnswerCallback,
+    afterToolCallback: refineAnswerAfterToolCallback,
     afterAgentCallback: createAgentEndCallback(agentName),
     instruction: (context) => {
       const { gapsGrades, question, answer } = getAuditFeedbackContext(context);
@@ -92,8 +94,8 @@ export function createRefinementAgent(model: string) {
       return 'Skipping LLM due to invalid evaluations.';
     },
     tools: [validFeedbackTool],
-    outputSchema: feedbackSchema,
-    outputKey: FEEDBACK_KEY,
+    outputSchema: refineAnswerSchema,
+    outputKey: REFINE_ANSWER_KEY,
     disallowTransferToParent: true,
     disallowTransferToPeers: true,
   });

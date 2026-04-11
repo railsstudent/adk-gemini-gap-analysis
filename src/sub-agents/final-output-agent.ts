@@ -1,5 +1,5 @@
 import { BaseAgent, createEvent, Event, InvocationContext, ReadonlyContext } from '@google/adk';
-import { AuditFeedback, Feedback } from './types/audit-feedback.type.js';
+import { AuditFeedback } from './types/audit-feedback.type.js';
 import { getAuditFeedbackContext } from './utils.js';
 
 export function createFinalOutputEvent(author: string, context: InvocationContext, feedback: AuditFeedback): Event {
@@ -46,10 +46,8 @@ class FinalOutputAgent extends BaseAgent {
     const isAllGood = evaluations.every((evaluation) => evaluation.score === 'Good');
     const isAllPoor = evaluations.every((evaluation) => evaluation.score === 'Poor');
 
-    const isValidFeedback =
-      feedback && (feedback.strengths.trim().length > 0 || feedback.areasForImprovement.trim().length > 0);
-    const gapFeedback: Feedback = isValidFeedback ? feedback : { strengths: '', areasForImprovement: '' };
-    const overallGrade = !isValidFeedback ? 'Poor' : isAllGood ? 'Good' : isAllPoor ? 'Poor' : 'Moderate';
+    const overallGrade = !feedback ? 'Poor' : isAllGood ? 'Good' : isAllPoor ? 'Poor' : 'Moderate';
+    const gapFeedback = feedback || { strengths: '', areasForImprovement: '' };
 
     const emit = (author: string) =>
       createFinalOutputEvent(author, context, {

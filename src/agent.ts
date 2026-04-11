@@ -1,5 +1,4 @@
-import { FunctionTool, LlmAgent, SequentialAgent } from '@google/adk';
-import { initSubAgents } from './init.js';
+import { FunctionTool, LlmAgent } from '@google/adk';
 import { createAgentEndCallback, createAgentStartCallback } from './sub-agents/callbacks/performance-callback.js';
 import {
   ANSWER_KEY,
@@ -9,6 +8,7 @@ import {
   SUB_QUESTIONS_KEY,
 } from './sub-agents/output-keys.const.js';
 import { questionAnswerSchema } from './sub-agents/types/audit-feedback.type.js';
+import { createAuditFeedbackAgent } from './workflow-agents/sequential-audit-feedback-agent.js';
 
 process.loadEnvFile();
 
@@ -56,15 +56,6 @@ const prepareAuditFeedbackTool = new FunctionTool({
   },
 });
 
-export const sequentialAuditFeedbackAgent = new SequentialAgent({
-  name: 'SequentialAuditFeedbackAgent',
-  subAgents: initSubAgents(model),
-  description: `
-      A sequential pipeline that processes a validated audit question and the user's answer. 
-      It decomposes the question into sub-questions, evaluates the provided answer against these criteria, and generates a finalized, merged JSON report.
-  `,
-});
-
 export const rootAgent = new LlmAgent({
   name: 'AuditFeedbackAgent',
   model,
@@ -85,5 +76,5 @@ export const rootAgent = new LlmAgent({
   beforeAgentCallback: createAgentStartCallback('AuditFeedbackAgent'),
   afterAgentCallback: createAgentEndCallback('AuditFeedbackAgent'),
   tools: [prepareAuditFeedbackTool],
-  subAgents: [sequentialAuditFeedbackAgent],
+  subAgents: createAuditFeedbackAgent(model),
 });

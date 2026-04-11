@@ -5,8 +5,8 @@ export const resetSessionStateCallback = (stateKey: string) => {
   return (context: Context) => {
     const failedKey = `${stateKey}_FAILED`;
 
-    console.log(`beforeAgentCallback: Agent ${context.agentName} initialized ${VALIDATION_ATTEMPTS_KEY} to 0.`);
-    console.log(`beforeAgentCallback: Agent ${context.agentName} initialized ${failedKey} to false.`);
+    console.log(`resetSessionStateCallback: Agent ${context.agentName} initialized ${VALIDATION_ATTEMPTS_KEY} to 0.`);
+    console.log(`resetSessionStateCallback: Agent ${context.agentName} initialized ${failedKey} to false.`);
 
     if (!context || !context.state) {
       return undefined;
