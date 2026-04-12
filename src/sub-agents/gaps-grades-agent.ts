@@ -1,8 +1,10 @@
 import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
-import { validateByScore } from './agent-utils/gaps-grades.util.js';
 import { createAfterToolCallback } from '../callbacks/after-tool-retry-callback.js';
-import { createAgentEndCallback, createAgentStartCallback } from '../callbacks/performance-callback.js';
-import { resetSessionStateCallback } from '../callbacks/reset-attempts-callback.js';
+import {
+  createAgentEndCallback,
+  logStartTimeAndResetStatesBeforeAgentCallback,
+} from '../callbacks/performance-callback.js';
+import { validateByScore } from './agent-utils/gaps-grades.util.js';
 import { GAPS_GRADES_KEY } from './output-keys.const.js';
 import { generateGapsGradesPrompt } from './prompts/gaps-grades.prompt.js';
 import { gapsGradesSchema } from './types/audit-feedback.type.js';
@@ -103,7 +105,7 @@ export function createGapsGradesAgent(model: string): BaseAgent {
     model,
     description:
       "Evaluates the user's answer against the generated sub-questions to identify strengths and gaps, providing a structured grade for each criterion.",
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(failedStateKey)],
+    beforeAgentCallback: logStartTimeAndResetStatesBeforeAgentCallback(failedStateKey),
     beforeModelCallback: validGapsGradesCallback,
     instruction: (context) => {
       const { subQuestions, answer } = getAuditFeedbackContext(context);

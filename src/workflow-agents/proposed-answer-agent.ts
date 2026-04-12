@@ -1,8 +1,10 @@
 import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from '../callbacks/after-tool-retry-callback.js';
 import { createAttachIdsAfterAgentCallback } from '../callbacks/attach-agent-ids-callback.js';
-import { createAgentEndCallback, createAgentStartCallback } from '../callbacks/performance-callback.js';
-import { resetSessionStateCallback } from '../callbacks/reset-attempts-callback.js';
+import {
+  createAgentEndCallback,
+  logStartTimeAndResetStatesBeforeAgentCallback,
+} from '../callbacks/performance-callback.js';
 import { Feedback } from '../sub-agents/types/audit-feedback.type.js';
 import { generateFaileStateKey, getAuditFeedbackContext, isValidFeedback } from '../sub-agents/utils.js';
 import { generateProposedAnswerPrompt } from './prompts/proposed-answer.prompt.js';
@@ -116,7 +118,7 @@ export function createProposedAnswerAgent(model: string) {
     model,
     description:
       'Revise the original answer by incorporating the provided feedback and detailed evaluations. The revised answer should preserve existing strengths while realistically addressing identified gaps—either by remediating them or acknowledging them with appropriate context.',
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(failedStateKey)],
+    beforeAgentCallback: logStartTimeAndResetStatesBeforeAgentCallback(failedStateKey),
     beforeModelCallback: checkProposedAnswercallback,
     afterToolCallback: proposedAnswerAfterToolCallback,
     afterAgentCallback: [createAttachIdsAfterAgentCallback(PROPOSED_ANSWER_KEY), createAgentEndCallback(agentName)],

@@ -1,4 +1,5 @@
-import { SingleAgentCallback } from '@google/adk';
+import { Context, SingleAgentCallback } from '@google/adk';
+import { VALIDATION_ATTEMPTS_KEY } from '../sub-agents/output-keys.const.js';
 
 export function createAgentStartCallback(agentName: string): SingleAgentCallback {
   return (context) => {
@@ -9,6 +10,28 @@ export function createAgentStartCallback(agentName: string): SingleAgentCallback
     const key = `${agentName}_start_time`;
 
     context.state.set(key, Date.now());
+    return undefined;
+  };
+}
+
+export function logStartTimeAndResetStatesBeforeAgentCallback(failedKey: string) {
+  return (context: Context) => {
+    const agentName = context.agentName;
+    console.log(
+      `logStartTimeAndResetStatesBeforeAgentCallback: Agent ${agentName} initialized ${VALIDATION_ATTEMPTS_KEY} to 0.`,
+    );
+    console.log(`logStartTimeAndResetStatesBeforeAgentCallback: Agent ${agentName} initialized ${failedKey} to false.`);
+
+    if (!context || !context.state) {
+      return undefined;
+    }
+
+    const key = `${agentName}_start_time`;
+
+    context.state.set(key, Date.now());
+    context.state.set(VALIDATION_ATTEMPTS_KEY, 0);
+    context.state.set(failedKey, false);
+
     return undefined;
   };
 }
