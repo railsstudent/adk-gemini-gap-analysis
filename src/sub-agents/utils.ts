@@ -51,3 +51,7 @@ export function isValidSubquestionsList(obj_sub_questions: SubQuestions | null):
 export function isValidFeedback(feedback: Feedback | null | undefined) {
   return !!feedback && (feedback.strengths.trim() || !!feedback.areasForImprovement.trim());
 }
+
+export function generateFaileStateKey(stateKey: string) {
+  return `${stateKey}_FAILED`;
+}

@@ -20,6 +20,7 @@ export function generateProposedAnswerPrompt(question: string, answer: string, f
        - If a gap is due to a lack of clarity, rewrite it to be clearer.
        - **DO NOT HALLUCINATE COMPLIANCE:** If a gap represents a fundamental architectural shortfall or missing evidence, your proposed answer should clearly and professionally *acknowledge* that gap. Do not invent false claims just to "fix" the gap.
     3. **Professional Tone:** Ensure the revised answer is cohesive, direct, and professional.
+    4. **Plain Text Formatting:** The proposed answer MUST be generated in pure plain text. You are STRICTLY FORBIDDEN from using any Markdown syntax (e.g., no asterisks for bolding **, no hashes for headers #, no bullet points -, and no backticks \`). Use standard line breaks to separate paragraphs.
 
     ### VALIDATION STEP
     Before generating your final JSON output, you MUST call the 'validate_proposed_answer' tool with your synthesized proposed answer.

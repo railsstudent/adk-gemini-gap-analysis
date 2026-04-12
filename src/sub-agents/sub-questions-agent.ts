@@ -1,16 +1,15 @@
 import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
-import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
-import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
-import { resetSessionStateCallback } from './callbacks/reset-attempts-callback.js';
-import { SUB_QUESTIONS_FAILED_KEY, SUB_QUESTIONS_KEY } from './output-keys.const.js';
+import { createAfterToolCallback } from '../callbacks/after-tool-retry-callback.js';
+import { createAgentEndCallback, createAgentStartCallback } from '../callbacks/performance-callback.js';
+import { resetSessionStateCallback } from '../callbacks/reset-attempts-callback.js';
+import { SUB_QUESTIONS_KEY } from './output-keys.const.js';
 import { generateSubQuestionsPrompt } from './prompts/sub-questions.prompt.js';
 import { subQuestionsSchema } from './types/audit-feedback.type.js';
-import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
+import { generateFaileStateKey, getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
 
 const subQuestionsAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately. Max validation attempts reached. Return an empty list of sub-questions if none.`,
   SUB_QUESTIONS_KEY,
-  SUB_QUESTIONS_FAILED_KEY,
 );
 
 export const validateSubQuestionsTool = new FunctionTool({
@@ -84,7 +83,10 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
     model,
     description:
       'Decomposes a complex question into smaller, manageable sub-questions for better analysis and structured feedback.',
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(SUB_QUESTIONS_FAILED_KEY)],
+    beforeAgentCallback: [
+      createAgentStartCallback(agentName),
+      resetSessionStateCallback(generateFaileStateKey(SUB_QUESTIONS_KEY)),
+    ],
     beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
       const { question, answer } = getAuditFeedbackContext(context);

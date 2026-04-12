@@ -1,18 +1,19 @@
 import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
-import { createAfterToolCallback } from '../sub-agents/callbacks/after-tool-retry-callback.js';
-import { createAgentEndCallback, createAgentStartCallback } from '../sub-agents/callbacks/performance-callback.js';
-import { resetSessionStateCallback } from '../sub-agents/callbacks/reset-attempts-callback.js';
+import { createAfterToolCallback } from '../callbacks/after-tool-retry-callback.js';
+import { createAgentEndCallback, createAgentStartCallback } from '../callbacks/performance-callback.js';
+import { resetSessionStateCallback } from '../callbacks/reset-attempts-callback.js';
 import { Feedback } from '../sub-agents/types/audit-feedback.type.js';
-import { getAuditFeedbackContext, isValidFeedback } from '../sub-agents/utils.js';
+import { generateFaileStateKey, getAuditFeedbackContext, isValidFeedback } from '../sub-agents/utils.js';
 import { generateProposedAnswerPrompt } from './prompts/proposed-answer.prompt.js';
 import { proposedAnswerSchema } from './types/proposed-answer.type.js';
 import { getProposedAnswerContext } from './utils.js';
-import { PROPOSED_ANSWER_FAILED_KEY, PROPOSED_ANSWER_KEY } from './workflow-agents-output-keys.const.js';
+import { PROPOSED_ANSWER_KEY } from './workflow-agents-output-keys.const.js';
+
+const failedStateKey = generateFaileStateKey(PROPOSED_ANSWER_KEY);
 
 const proposedAnswerAfterToolCallback = createAfterToolCallback(
   'STOP processing immediately and output the final JSON schema. The proposed answer cannot be blank or same as the original answer.',
   PROPOSED_ANSWER_KEY,
-  PROPOSED_ANSWER_FAILED_KEY,
 );
 
 export const validProposedAnswerTool = new FunctionTool({
@@ -61,7 +62,7 @@ function canGenerateProposedAnswer(answer: string | null, feedback: Feedback | n
 const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(`beforeModelCallback: Agent ${context.agentName} validated proposed answer before calling LLM.`);
 
-  if (context?.state?.get(PROPOSED_ANSWER_FAILED_KEY)) {
+  if (context?.state?.get(failedStateKey)) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {
@@ -80,6 +81,7 @@ const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context 
 
   // Valid answer
   if (proposedAnswer && !validateProposedAnswer(answer, proposedAnswer.proposedAnswer)) {
+    console.log('short-circuit proposed answer');
     return {
       content: {
         role: 'model',
@@ -113,7 +115,7 @@ export function createProposedAnswerAgent(model: string) {
     model,
     description:
       'Revise the original answer by incorporating the provided feedback and detailed evaluations. The revised answer should preserve existing strengths while realistically addressing identified gaps—either by remediating them or acknowledging them with appropriate context.',
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(PROPOSED_ANSWER_FAILED_KEY)],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(failedStateKey)],
     beforeModelCallback: checkProposedAnswercallback,
     afterToolCallback: proposedAnswerAfterToolCallback,
     afterAgentCallback: createAgentEndCallback(agentName),

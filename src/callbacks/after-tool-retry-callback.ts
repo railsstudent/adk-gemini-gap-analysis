@@ -1,11 +1,11 @@
 import { SingleAfterToolCallback } from '@google/adk';
-import { VALIDATION_ATTEMPTS_KEY } from '../output-keys.const.js';
-import { MAX_ITERATIONS } from '../validation.const.js';
+import { VALIDATION_ATTEMPTS_KEY } from '../sub-agents/output-keys.const.js';
+import { MAX_ITERATIONS } from '../sub-agents/validation.const.js';
+import { generateFaileStateKey } from '../sub-agents/utils.js';
 
 export function createAfterToolCallback(
   fatalErrorMessage: string,
   stateKey: string,
-  failedStateKey: string,
   maxAttempts = MAX_ITERATIONS,
 ): SingleAfterToolCallback {
   return ({ tool, context, response }) => {
@@ -36,7 +36,7 @@ export function createAfterToolCallback(
 
       // Break the internal LLM tool-calling loop
       context.actions.escalate = true;
-      state.set(failedStateKey, true);
+      state.set(generateFaileStateKey(stateKey), true);
 
       return {
         status: 'FATAL_ERROR',

@@ -1,5 +1,5 @@
 import { FunctionTool, LlmAgent } from '@google/adk';
-import { createAgentEndCallback, createAgentStartCallback } from './sub-agents/callbacks/performance-callback.js';
+import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
 import {
   ANSWER_KEY,
   FEEDBACK_KEY,

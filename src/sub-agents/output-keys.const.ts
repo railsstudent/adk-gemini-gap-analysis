@@ -1,9 +1,6 @@
 export const FEEDBACK_KEY = 'feedback';
-export const FEEDBACK_FAILED_KEY = `${FEEDBACK_KEY}_FAILED`;
 export const GAPS_GRADES_KEY = 'gapsGrades';
-export const GAPS_GRADES_FAILED_KEY = `${GAPS_GRADES_KEY}_FAILED`;
 export const QUESTION_KEY = 'question';
 export const ANSWER_KEY = 'answer';
 export const SUB_QUESTIONS_KEY = 'subQuestions';
-export const SUB_QUESTIONS_FAILED_KEY = `${SUB_QUESTIONS_KEY}_FAILED`;
 export const VALIDATION_ATTEMPTS_KEY = 'validation_attempts';

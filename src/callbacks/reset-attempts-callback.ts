@@ -1,5 +1,5 @@
 import { Context } from '@google/adk';
-import { VALIDATION_ATTEMPTS_KEY } from '../output-keys.const.js';
+import { VALIDATION_ATTEMPTS_KEY } from '../sub-agents/output-keys.const.js';
 
 export const resetSessionStateCallback = (failedKey: string) => {
   return (context: Context) => {
