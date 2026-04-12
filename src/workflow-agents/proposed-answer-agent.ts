@@ -7,6 +7,7 @@ import { generateProposedAnswerPrompt } from './prompts/proposed-answer.prompt.j
 import { PROPOSED_ANSWER_FAILED_KEY, PROPOSED_ANSWER_KEY } from './workflow-agents-output-keys.const.js';
 import { proposedAnswerSchema } from './types/proposed-answer.type.js';
 import { getProposedAnswerContext } from './utils.js';
+import { Feedback } from '../sub-agents/types/audit-feedback.type.js';
 
 const proposedAnswerAfterToolCallback = createAfterToolCallback(
   'STOP processing immediately and output the final JSON schema. The proposed answer cannot be blank or same as the original answer.',
@@ -49,10 +50,22 @@ function validateProposedAnswer(answer: string | null, proposedAnswer: string) {
   return undefined;
 }
 
+function canGenerateProposedAnswer(answer: string | null, feedback: Feedback | null) {
+  if (!answer || answer.trim().length === 0) {
+    return false;
+  }
+
+  if (!feedback || (!feedback.strengths.trim() && !feedback.areasForImprovement.trim())) {
+    return false;
+  }
+
+  return true;
+}
+
 const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(`beforeModelCallback: Agent ${context.agentName} validated proposed answer before calling LLM.`);
 
-  if (context?.state?.get(`${PROPOSED_ANSWER_KEY}_FAILED`)) {
+  if (context?.state?.get(PROPOSED_ANSWER_FAILED_KEY)) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {
@@ -66,9 +79,10 @@ const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context 
     };
   }
 
-  const { answer } = getAuditFeedbackContext(context);
+  const { answer, feedback } = getAuditFeedbackContext(context);
   const { proposedAnswer } = getProposedAnswerContext(context);
 
+  // Valid answer
   if (proposedAnswer && !validateProposedAnswer(answer, proposedAnswer.proposedAnswer)) {
     return {
       content: {
@@ -76,6 +90,17 @@ const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context 
         parts: [
           {
             text: JSON.stringify(proposedAnswer),
+          },
+        ],
+      },
+    };
+  } else if (canGenerateProposedAnswer(answer, feedback)) {
+    return {
+      content: {
+        role: 'model',
+        parts: [
+          {
+            text: JSON.stringify(null),
           },
         ],
       },
