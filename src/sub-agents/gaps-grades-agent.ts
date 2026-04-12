@@ -1,9 +1,9 @@
 import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
+import { validateByScore } from './agent-utils/gaps-grades.util.js';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
 import { resetSessionStateCallback } from './callbacks/reset-attempts-callback.js';
-import { validateByScore } from './gaps-grades.util.js';
-import { GAPS_GRADES_KEY } from './output-keys.const.js';
+import { GAPS_GRADES_FAILED_KEY, GAPS_GRADES_KEY } from './output-keys.const.js';
 import { generateGapsGradesPrompt } from './prompts/gaps-grades.prompt.js';
 import { gapsGradesSchema } from './types/audit-feedback.type.js';
 import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
@@ -11,6 +11,7 @@ import { getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } fr
 const gapsGradesAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema with an empty list of evaluations.`,
   GAPS_GRADES_KEY,
+  GAPS_GRADES_FAILED_KEY,
 );
 
 export const validGapsGradesTool = new FunctionTool({
@@ -87,7 +88,7 @@ export function createGapsGradesAgent(model: string): BaseAgent {
     model,
     description:
       "Evaluates the user's answer against the generated sub-questions to identify strengths and gaps, providing a structured grade for each criterion.",
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(GAPS_GRADES_KEY)],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(GAPS_GRADES_FAILED_KEY)],
     beforeModelCallback: validGapsGradesCallback,
     instruction: (context) => {
       const { subQuestions, answer } = getAuditFeedbackContext(context);

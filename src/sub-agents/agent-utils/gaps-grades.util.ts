@@ -1,5 +1,5 @@
-import { Evaluation } from './types/audit-feedback.type.js';
-import { hasUniqueStrings, isNonBlankStringList } from './utils.js';
+import { Evaluation } from '../types/audit-feedback.type.js';
+import { hasUniqueStrings, isNonBlankStringList } from '../utils.js';
 
 function validateGoodScore(evaluation: Evaluation) {
   if (!isNonBlankStringList(evaluation.strengths)) {

@@ -5,21 +5,21 @@ import { Feedback, GapsGrades, SubQuestions } from './types/audit-feedback.type.
 export function getAuditFeedbackContext(context: ReadonlyContext | undefined) {
   if (!context || !context.state) {
     return {
-      question: null,
-      answer: null,
-      subQuestions: null,
-      gapsGrades: null,
-      feedback: null,
+      [QUESTION_KEY]: null,
+      [ANSWER_KEY]: null,
+      [SUB_QUESTIONS_KEY]: null,
+      [GAPS_GRADES_KEY]: null,
+      [FEEDBACK_KEY]: null,
     };
   }
 
   const state = context.state;
   return {
-    question: state.get<string>(QUESTION_KEY, '') ?? null,
-    answer: state.get<string>(ANSWER_KEY, '') ?? null,
-    subQuestions: state.get<SubQuestions>(SUB_QUESTIONS_KEY) ?? null,
-    gapsGrades: state.get<GapsGrades>(GAPS_GRADES_KEY) ?? null,
-    feedback: state.get<Feedback>(FEEDBACK_KEY) ?? null,
+    [QUESTION_KEY]: state.get<string>(QUESTION_KEY, '') ?? null,
+    [ANSWER_KEY]: state.get<string>(ANSWER_KEY, '') ?? null,
+    [SUB_QUESTIONS_KEY]: state.get<SubQuestions>(SUB_QUESTIONS_KEY) ?? null,
+    [GAPS_GRADES_KEY]: state.get<GapsGrades>(GAPS_GRADES_KEY) ?? null,
+    [FEEDBACK_KEY]: state.get<Feedback>(FEEDBACK_KEY) ?? null,
   };
 }
 

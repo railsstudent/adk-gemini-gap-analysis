@@ -5,6 +5,7 @@ import { MAX_ITERATIONS } from '../validation.const.js';
 export function createAfterToolCallback(
   fatalErrorMessage: string,
   stateKey: string,
+  failedStateKey: string,
   maxAttempts = MAX_ITERATIONS,
 ): SingleAfterToolCallback {
   return ({ tool, context, response }) => {
@@ -35,7 +36,7 @@ export function createAfterToolCallback(
 
       // Break the internal LLM tool-calling loop
       context.actions.escalate = true;
-      state.set(`${stateKey}_FAILED`, true);
+      state.set(failedStateKey, true);
 
       return {
         status: 'FATAL_ERROR',

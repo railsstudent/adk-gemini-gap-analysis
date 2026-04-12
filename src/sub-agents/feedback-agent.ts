@@ -1,10 +1,10 @@
 import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
+import { validateFeedback } from './agent-utils/feedback.util.js';
+import { validateByScore } from './agent-utils/gaps-grades.util.js';
 import { createAfterToolCallback } from './callbacks/after-tool-retry-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from './callbacks/performance-callback.js';
 import { resetSessionStateCallback } from './callbacks/reset-attempts-callback.js';
-import { validateFeedback } from './feedback.util.js';
-import { validateByScore } from './gaps-grades.util.js';
-import { FEEDBACK_KEY } from './output-keys.const.js';
+import { FEEDBACK_FAILED_KEY, FEEDBACK_KEY } from './output-keys.const.js';
 import { generateFeedbackPrompt } from './prompts/feedback.prompt.js';
 import { feedbackSchema } from './types/audit-feedback.type.js';
 import { getAuditFeedbackContext } from './utils.js';
@@ -12,6 +12,7 @@ import { getAuditFeedbackContext } from './utils.js';
 const feedbackAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately and output the final JSON schema. You cannot have both blank strengths and areasForImprovement.`,
   FEEDBACK_KEY,
+  FEEDBACK_FAILED_KEY,
 );
 
 export const validFeedbackTool = new FunctionTool({
@@ -75,7 +76,7 @@ export function createFeedbackAgent(model: string) {
     model,
     description:
       "Synthesizes the evaluations of the user's answer against the architectural question into a final feedback report containing strengths and areas for improvement.",
-    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(FEEDBACK_KEY)],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(FEEDBACK_FAILED_KEY)],
     beforeModelCallback: checkFeedbackCallback,
     afterToolCallback: feedbackAfterToolCallback,
     afterAgentCallback: createAgentEndCallback(agentName),

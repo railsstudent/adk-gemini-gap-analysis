@@ -1,11 +1,11 @@
-import { Feedback } from './types/audit-feedback.type.js';
+import { Feedback } from '../types/audit-feedback.type.js';
 
 export function validateFeedback(feedback: Feedback) {
   const { strengths, areasForImprovement } = feedback;
   const hasNoStrengths = !strengths || !strengths.trim().length;
   const hasNoAreasForImprovement = !areasForImprovement || !areasForImprovement.trim().length;
 
-  const strengthsHeader = '## Strengths';
+  const strengthsHeader = '## Strengths:';
   const areasForImprovementHeader = '## Areas for Improvement';
 
   if (hasNoStrengths && hasNoAreasForImprovement) {
