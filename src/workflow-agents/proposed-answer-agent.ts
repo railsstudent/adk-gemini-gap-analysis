@@ -94,7 +94,7 @@ const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context 
         ],
       },
     };
-  } else if (canGenerateProposedAnswer(answer, feedback)) {
+  } else if (!canGenerateProposedAnswer(answer, feedback)) {
     return {
       content: {
         role: 'model',
@@ -115,7 +115,8 @@ export function createProposedAnswerAgent(model: string) {
   return new LlmAgent({
     name: agentName,
     model,
-    description: 'Analyze the feedback and the original answer, and generate a proposed answer.',
+    description:
+      'Revise the original answer by incorporating the provided feedback and detailed evaluations. The revised answer should preserve existing strengths while realistically addressing identified gaps—either by remediating them or acknowledging them with appropriate context.',
     beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(PROPOSED_ANSWER_FAILED_KEY)],
     beforeModelCallback: checkProposedAnswercallback,
     afterToolCallback: proposedAnswerAfterToolCallback,
@@ -123,11 +124,11 @@ export function createProposedAnswerAgent(model: string) {
     instruction: (context) => {
       const { answer, feedback, question } = getAuditFeedbackContext(context);
 
-      if (answer && question && feedback) {
+      if (answer && question && feedback && canGenerateProposedAnswer(answer, feedback)) {
         return generateProposedAnswerPrompt(question, answer, feedback);
       }
 
-      return 'Skipping LLM due to invalid evaluations.';
+      return 'Skipping LLM due to invalid inputs.';
     },
     tools: [validProposedAnswerTool],
     outputSchema: proposedAnswerSchema,

@@ -1,5 +1,6 @@
 import { BaseAgent, SequentialAgent } from '@google/adk';
 import { initSubAgents } from '../init.js';
+import { createProposedAnswerAgent } from './proposed-answer-agent.js';
 
 export function createAuditFeedbackAgent(model: string): BaseAgent[] {
   const sequentialAuditFeedbackAgent = new SequentialAgent({
@@ -10,6 +11,6 @@ export function createAuditFeedbackAgent(model: string): BaseAgent[] {
             It decomposes the question into sub-questions, evaluates the provided answer against these criteria, and generates a finalized, merged JSON report.
         `,
   });
-
-  return [sequentialAuditFeedbackAgent];
+  const proposedAnswerAgent = createProposedAnswerAgent(model);
+  return [proposedAnswerAgent, sequentialAuditFeedbackAgent];
 }

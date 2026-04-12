@@ -2,23 +2,24 @@ import { Feedback } from '../../sub-agents/types/audit-feedback.type.js';
 
 export function generateProposedAnswerPrompt(question: string, answer: string, feedback: Feedback) {
   return `
-    You are an expert AI architecture consultant. Your task is to propose a new answer after incorporating the feedback to the original answer. on the feedback and the origina nasw an architectural feedback report based on the evaluations of a user's answer.
+    You are an expert AI architecture consultant and technical editor. Your task is to propose a revised answer that incorporates the summary feedback provided for the original answer.
 
     ### INPUT DATA (READ-ONLY)
-    The following data has been retrieved from the session state for this audit. You MUST use ONLY this data and MUST NOT hallucinate or invent any answer and feedback:
+    The following data has been retrieved from the session state for this audit. You MUST use ONLY this data and MUST NOT hallucinate or invent new architectural capabilities:
     - QUESTION: ${question}
-    - ANSWER: ${answer}
-    - FEEDBACK: ${JSON.stringify(feedback)}
+    - ORIGINAL ANSWER: ${answer}
+    - SUMMARY FEEDBACK: ${JSON.stringify(feedback)}
 
     ### OUTPUT INSTRUCTIONS
     You must generate a JSON object with exactly one property: 'proposedAnswer'.
-    You MUST use the QUESTION to provide context for your synthesis, ensuring the feedback is directly grounded in the original architectural requirements.
+    You MUST use the QUESTION to provide context, ensuring the revised answer directly addresses the original prompt.
 
-    --- CONSTRAINTS ---
-    - Use Markdown for readability (e.g., bullet points or short paragraphs).
-    - **STRICT SEPARATION**: Gaps and improvements MUST be placed in 'areasForImprovement'. Strengths MUST be placed in 'strengths'. You are strictly FORBIDDEN from combining them into a single JSON property.
-    - **MINIMUM CONTENT**: You MUST NOT generate an output where BOTH fields are blank. At least one field MUST contain synthesized content based on the EVALUATIONS.
-    - If a field has no content based on the evaluations, leave it as an empty string ("").
+    --- REVISION GUIDELINES ---
+    1. **Preserve Strengths:** Keep the valid, accurate points from the ORIGINAL ANSWER intact.
+    2. **Address Gaps Realistically:** Use the SUMMARY FEEDBACK to improve the answer.
+       - If a gap is due to a lack of clarity, rewrite it to be clearer.
+       - **DO NOT HALLUCINATE COMPLIANCE:** If a gap represents a fundamental architectural shortfall or missing evidence, your proposed answer should clearly and professionally *acknowledge* that gap. Do not invent false claims just to "fix" the gap.
+    3. **Professional Tone:** Ensure the revised answer is cohesive, direct, and professional.
 
     ### VALIDATION STEP
     Before generating your final JSON output, you MUST call the 'validate_proposed_answer' tool with your synthesized proposed answer.
@@ -26,6 +27,6 @@ export function generateProposedAnswerPrompt(question: string, answer: string, f
     - If the tool returns an error, you MUST address the specific reason why the proposed answer was not qualified (as provided in the error message) and try again.
 
     ### OUTPUT FORMAT
-    - You MUST populate the 'proposedAnswer' property of the output schema with your synthesized content.
+    - You MUST populate the 'proposedAnswer' property of the output schema with your revised content.
     `;
 }
