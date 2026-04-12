@@ -1,5 +1,6 @@
 import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from '../callbacks/after-tool-retry-callback.js';
+import { createAttachIdsAfterAgentCallback } from '../callbacks/attach-agent-ids-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from '../callbacks/performance-callback.js';
 import { resetSessionStateCallback } from '../callbacks/reset-attempts-callback.js';
 import { Feedback } from '../sub-agents/types/audit-feedback.type.js';
@@ -118,7 +119,7 @@ export function createProposedAnswerAgent(model: string) {
     beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(failedStateKey)],
     beforeModelCallback: checkProposedAnswercallback,
     afterToolCallback: proposedAnswerAfterToolCallback,
-    afterAgentCallback: createAgentEndCallback(agentName),
+    afterAgentCallback: [createAttachIdsAfterAgentCallback(PROPOSED_ANSWER_KEY), createAgentEndCallback(agentName)],
     instruction: (context) => {
       const { answer, feedback, question } = getAuditFeedbackContext(context);
 
