@@ -47,3 +47,7 @@ export function isValidSubquestionsList(obj_sub_questions: SubQuestions | null):
 
   return isNonBlankStringList(sub_questions);
 }
+
+export function isValidFeedback(feedback: Feedback | null | undefined) {
+  return !!feedback && (feedback.strengths.trim() || !!feedback.areasForImprovement.trim());
+}

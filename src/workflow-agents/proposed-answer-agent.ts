@@ -2,12 +2,12 @@ import { FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
 import { createAfterToolCallback } from '../sub-agents/callbacks/after-tool-retry-callback.js';
 import { createAgentEndCallback, createAgentStartCallback } from '../sub-agents/callbacks/performance-callback.js';
 import { resetSessionStateCallback } from '../sub-agents/callbacks/reset-attempts-callback.js';
-import { getAuditFeedbackContext } from '../sub-agents/utils.js';
+import { Feedback } from '../sub-agents/types/audit-feedback.type.js';
+import { getAuditFeedbackContext, isValidFeedback } from '../sub-agents/utils.js';
 import { generateProposedAnswerPrompt } from './prompts/proposed-answer.prompt.js';
-import { PROPOSED_ANSWER_FAILED_KEY, PROPOSED_ANSWER_KEY } from './workflow-agents-output-keys.const.js';
 import { proposedAnswerSchema } from './types/proposed-answer.type.js';
 import { getProposedAnswerContext } from './utils.js';
-import { Feedback } from '../sub-agents/types/audit-feedback.type.js';
+import { PROPOSED_ANSWER_FAILED_KEY, PROPOSED_ANSWER_KEY } from './workflow-agents-output-keys.const.js';
 
 const proposedAnswerAfterToolCallback = createAfterToolCallback(
   'STOP processing immediately and output the final JSON schema. The proposed answer cannot be blank or same as the original answer.',
@@ -55,11 +55,7 @@ function canGenerateProposedAnswer(answer: string | null, feedback: Feedback | n
     return false;
   }
 
-  if (!feedback || (!feedback.strengths.trim() && !feedback.areasForImprovement.trim())) {
-    return false;
-  }
-
-  return true;
+  return isValidFeedback(feedback);
 }
 
 const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context }) => {
