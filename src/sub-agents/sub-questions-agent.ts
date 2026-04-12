@@ -7,6 +7,8 @@ import { generateSubQuestionsPrompt } from './prompts/sub-questions.prompt.js';
 import { subQuestionsSchema } from './types/audit-feedback.type.js';
 import { generateFaileStateKey, getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
 
+const failedStateKey = generateFaileStateKey(SUB_QUESTIONS_KEY);
+
 const subQuestionsAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately. Max validation attempts reached. Return an empty list of sub-questions if none.`,
   SUB_QUESTIONS_KEY,
@@ -51,12 +53,25 @@ export const validateSubQuestionsTool = new FunctionTool({
 });
 
 const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ context }) => {
-  const { subQuestions } = getAuditFeedbackContext(context);
-
   console.log(
     `beforeModelCallback: Agent ${context.agentName} checked if sub-questions are already present and valid before calling LLM.`,
   );
 
+  if (context?.state?.get(failedStateKey)) {
+    console.log('Validation permanently failed. Terminating agent with fallback data.');
+    return {
+      content: {
+        role: 'model',
+        parts: [
+          {
+            text: JSON.stringify(null),
+          },
+        ],
+      },
+    };
+  }
+
+  const { subQuestions } = getAuditFeedbackContext(context);
   const isSubQuestionsGenerated = isValidSubquestionsList(subQuestions);
 
   if (!isSubQuestionsGenerated) {
@@ -83,10 +98,7 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
     model,
     description:
       'Decomposes a complex question into smaller, manageable sub-questions for better analysis and structured feedback.',
-    beforeAgentCallback: [
-      createAgentStartCallback(agentName),
-      resetSessionStateCallback(generateFaileStateKey(SUB_QUESTIONS_KEY)),
-    ],
+    beforeAgentCallback: [createAgentStartCallback(agentName), resetSessionStateCallback(failedStateKey)],
     beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
       const { question, answer } = getAuditFeedbackContext(context);

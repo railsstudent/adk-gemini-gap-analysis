@@ -38,7 +38,10 @@ export const validFeedbackTool = new FunctionTool({
 const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(`beforeModelCallback: Agent ${context.agentName} validated feedback before calling LLM.`);
 
-  if (context?.state?.get(failedStateKey)) {
+  const { feedback, gapsGrades } = getAuditFeedbackContext(context);
+  const evaluations = gapsGrades?.evaluations || [];
+
+  if (context?.state?.get(failedStateKey) || !evaluations.length) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {
@@ -51,8 +54,6 @@ const checkFeedbackCallback: SingleBeforeModelCallback = async ({ context }) => 
       },
     };
   }
-
-  const { feedback } = getAuditFeedbackContext(context);
 
   if (feedback && !validateFeedback(feedback)) {
     return {
