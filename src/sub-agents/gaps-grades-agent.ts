@@ -60,7 +60,7 @@ const validGapsGradesCallback: SingleBeforeModelCallback = async ({ context }) =
   const { gapsGrades, subQuestions } = getAuditFeedbackContext(context);
   const { evaluations } = gapsGrades || { evaluations: [] };
 
-  if (context?.state?.get(failedStateKey) || !isValidSubquestionsList(subQuestions)) {
+  if (context?.state?.get<boolean>(failedStateKey) || !isValidSubquestionsList(subQuestions)) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {

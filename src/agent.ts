@@ -43,8 +43,8 @@ const prepareAuditFeedbackTool = new FunctionTool({
       };
     }
 
-    context.state.set(QUESTION_KEY, question);
-    context.state.set(ANSWER_KEY, answer);
+    context.state.set(QUESTION_KEY, question.trim());
+    context.state.set(ANSWER_KEY, answer.trim());
 
     if (isValidFeedback(feedback)) {
       context.state.set(FEEDBACK_KEY, feedback);

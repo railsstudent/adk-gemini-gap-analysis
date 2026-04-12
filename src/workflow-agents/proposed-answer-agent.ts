@@ -65,7 +65,7 @@ function canGenerateProposedAnswer(answer: string | null, feedback: Feedback | n
 const checkProposedAnswercallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(`beforeModelCallback: Agent ${context.agentName} validated proposed answer before calling LLM.`);
 
-  if (context?.state?.get(failedStateKey)) {
+  if (context?.state?.get<boolean>(failedStateKey)) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {

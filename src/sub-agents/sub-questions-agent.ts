@@ -1,10 +1,18 @@
-import { BaseAgent, FunctionTool, LlmAgent, SingleBeforeModelCallback } from '@google/adk';
+import {
+  BaseAgent,
+  FunctionTool,
+  LlmAgent,
+  SingleAfterToolCallback,
+  SingleAgentCallback,
+  SingleBeforeModelCallback,
+} from '@google/adk';
 import { createAfterToolCallback } from '../callbacks/after-tool-retry-callback.js';
 import {
   createAgentEndCallback,
   logStartTimeAndResetStatesBeforeAgentCallback,
 } from '../callbacks/performance-callback.js';
-import { SUB_QUESTIONS_KEY } from './output-keys.const.js';
+import { hashQuestion, retrieveSubQuestions, saveSubQuestions } from '../persistence/firestore.js';
+import { PERSIST_SUB_QUESTIONS, SUB_QUESTIONS_KEY } from './output-keys.const.js';
 import { generateSubQuestionsPrompt } from './prompts/sub-questions.prompt.js';
 import { subQuestionsSchema } from './types/audit-feedback.type.js';
 import { generateFaileStateKey, getAuditFeedbackContext, hasUniqueStrings, isValidSubquestionsList } from './utils.js';
@@ -15,6 +23,27 @@ const subQuestionsAfterToolCallback = createAfterToolCallback(
   `STOP processing immediately. Max validation attempts reached. Return an empty list of sub-questions if none.`,
   SUB_QUESTIONS_KEY,
 );
+
+function setPersistSubQuestionsFlagAfterToolCallback(): SingleAfterToolCallback {
+  return async (parameters) => {
+    if (!parameters || !parameters.context || !parameters.context.state || !parameters.tool) {
+      return undefined;
+    }
+
+    const toolName = parameters.tool.name;
+    const agentName = parameters.context.agentName;
+
+    console.log(`AfterToolCallback: Agent ${agentName} executed ${toolName} to set PERSIST_SUB_QUESTIONS to true.`);
+
+    const fatalError = subQuestionsAfterToolCallback(parameters);
+    if (fatalError) {
+      return fatalError;
+    }
+
+    parameters.context.state.set(PERSIST_SUB_QUESTIONS, true);
+    return undefined;
+  };
+}
 
 export const validateSubQuestionsTool = new FunctionTool({
   name: 'validate_sub_questions',
@@ -54,12 +83,13 @@ export const validateSubQuestionsTool = new FunctionTool({
   },
 });
 
-const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ context }) => {
+const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = async ({ context }) => {
   console.log(
     `beforeModelCallback: Agent ${context.agentName} checked if sub-questions are already present and valid before calling LLM.`,
   );
 
-  if (context?.state?.get(failedStateKey)) {
+  const { question } = getAuditFeedbackContext(context);
+  if (context?.state?.get<boolean>(failedStateKey) || !question) {
     console.log('Validation permanently failed. Terminating agent with fallback data.');
     return {
       content: {
@@ -67,6 +97,22 @@ const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ conte
         parts: [
           {
             text: JSON.stringify(null),
+          },
+        ],
+      },
+    };
+  }
+
+  const hashKey = hashQuestion(question);
+  const persistedSubQuestions = await retrieveSubQuestions(hashKey);
+
+  if (persistedSubQuestions && persistedSubQuestions.length > 0) {
+    return {
+      content: {
+        role: 'model',
+        parts: [
+          {
+            text: JSON.stringify({ texts: persistedSubQuestions }),
           },
         ],
       },
@@ -93,6 +139,22 @@ const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = ({ conte
   };
 };
 
+const saveSubQuestionsAfterAgentCallback: SingleAgentCallback = async (context) => {
+  if (!context || !context.state) {
+    return undefined;
+  }
+
+  const toPersist = context.state.get<boolean>(PERSIST_SUB_QUESTIONS);
+  if (toPersist) {
+    const { question, subQuestions } = getAuditFeedbackContext(context);
+    if (question && isValidSubquestionsList(subQuestions)) {
+      const hashKey = hashQuestion(question);
+      const isoDateString = await saveSubQuestions(hashKey, subQuestions?.texts as string[]);
+      console.log(`Sub-questions persisted at ${isoDateString}.`);
+    }
+  }
+};
+
 export function createSubQuestionsAgent(model: string): BaseAgent {
   const agentName = 'SubQuestionsAgent';
   return new LlmAgent({
@@ -110,8 +172,8 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
 
       return generateSubQuestionsPrompt(question);
     },
-    afterToolCallback: subQuestionsAfterToolCallback,
-    afterAgentCallback: createAgentEndCallback(agentName),
+    afterToolCallback: setPersistSubQuestionsFlagAfterToolCallback(),
+    afterAgentCallback: [saveSubQuestionsAfterAgentCallback, createAgentEndCallback(agentName)],
     tools: [validateSubQuestionsTool],
     outputSchema: subQuestionsSchema,
     outputKey: SUB_QUESTIONS_KEY,
