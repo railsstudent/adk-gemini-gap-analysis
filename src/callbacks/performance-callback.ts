@@ -16,11 +16,10 @@ export function createAgentStartCallback(agentName: string): SingleAgentCallback
 
 export function logStartTimeAndResetStatesBeforeAgentCallback(failedKey: string) {
   return (context: Context) => {
+    const functionName = 'logStartTimeAndResetStatesBeforeAgentCallback';
     const agentName = context.agentName;
-    console.log(
-      `logStartTimeAndResetStatesBeforeAgentCallback: Agent ${agentName} initialized ${VALIDATION_ATTEMPTS_KEY} to 0.`,
-    );
-    console.log(`logStartTimeAndResetStatesBeforeAgentCallback: Agent ${agentName} initialized ${failedKey} to false.`);
+    console.log(`${functionName}: Agent ${agentName} initialized ${VALIDATION_ATTEMPTS_KEY} to 0.`);
+    console.log(`${functionName}: Agent ${agentName} initialized ${failedKey} to false.`);
 
     if (!context || !context.state) {
       return undefined;
