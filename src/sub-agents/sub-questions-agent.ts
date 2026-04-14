@@ -107,6 +107,7 @@ const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = async ({
   const persistedSubQuestions = await retrieveSubQuestions(hashKey);
 
   if (persistedSubQuestions && persistedSubQuestions.length > 0) {
+    console.log(`${persistedSubQuestions.length} Sub-question(s) retrieved from FireStore for hashKey: ${hashKey}.`);
     return {
       content: {
         role: 'model',
@@ -139,6 +140,17 @@ const subQuestionsAlreadyGeneratedCallback: SingleBeforeModelCallback = async ({
   };
 };
 
+const resetPersistSubQuestionsFlagBeforeAgentCallback: SingleAgentCallback = async (context) => {
+  if (!context || !context.state) {
+    return undefined;
+  }
+
+  logStartTimeAndResetStatesBeforeAgentCallback(failedStateKey);
+
+  context.state.set(PERSIST_SUB_QUESTIONS, false);
+  return undefined;
+};
+
 const saveSubQuestionsAfterAgentCallback: SingleAgentCallback = async (context) => {
   if (!context || !context.state) {
     return undefined;
@@ -150,7 +162,9 @@ const saveSubQuestionsAfterAgentCallback: SingleAgentCallback = async (context) 
     if (question && isValidSubquestionsList(subQuestions)) {
       const hashKey = hashQuestion(question);
       const isoDateString = await saveSubQuestions(hashKey, subQuestions?.texts as string[]);
-      console.log(`Sub-questions persisted at ${isoDateString}.`);
+      console.log(
+        `saveSubQuestionsAfterAgentCallback: sub-questions persisted at ${isoDateString} for hashKey ${hashKey}.`,
+      );
     }
   }
 };
@@ -162,7 +176,7 @@ export function createSubQuestionsAgent(model: string): BaseAgent {
     model,
     description:
       'Decomposes a complex question into smaller, manageable sub-questions for better analysis and structured feedback.',
-    beforeAgentCallback: logStartTimeAndResetStatesBeforeAgentCallback(failedStateKey),
+    beforeAgentCallback: resetPersistSubQuestionsFlagBeforeAgentCallback,
     beforeModelCallback: subQuestionsAlreadyGeneratedCallback,
     instruction: (context) => {
       const { question, answer } = getAuditFeedbackContext(context);

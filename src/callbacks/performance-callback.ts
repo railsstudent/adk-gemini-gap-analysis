@@ -1,5 +1,5 @@
 import { Context, SingleAgentCallback } from '@google/adk';
-import { PERSIST_SUB_QUESTIONS, VALIDATION_ATTEMPTS_KEY } from '../sub-agents/output-keys.const.js';
+import { VALIDATION_ATTEMPTS_KEY } from '../sub-agents/output-keys.const.js';
 
 export function createAgentStartCallback(agentName: string): SingleAgentCallback {
   return (context) => {
@@ -30,7 +30,6 @@ export function logStartTimeAndResetStatesBeforeAgentCallback(failedKey: string)
     context.state.set(key, Date.now());
     context.state.set(VALIDATION_ATTEMPTS_KEY, 0);
     context.state.set(failedKey, false);
-    context.state.set(PERSIST_SUB_QUESTIONS, false);
 
     return undefined;
   };
